@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Kray Sekai — Training System. Variables globales del sistema visual.
+     Mismos valores que tailwind.config.js — tocar ambos si se ajusta la paleta. */
+  --bg-primary: #050505;
+  --bg-secondary: #000000;
+  --bg-card: #0a0a0a;
+  --border: #1f1f1f;
+  --red: #e51e3a;
+  --red-bright: #ff2448;
+  --text-primary: #f5f5f5;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+  --blue: #3aaeec;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+    background-image: radial-gradient(ellipse 900px 480px at 12% -10%, rgba(229, 30, 58, 0.1), transparent 60%),
+      radial-gradient(ellipse 600px 400px at 100% 0%, rgba(58, 174, 236, 0.05), transparent 55%);
+    background-attachment: fixed;
+  }
+  ::selection {
+    @apply bg-maroon text-paper;
+  }
+  :focus-visible {
+    outline: 2px solid var(--red-bright);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Motivo HUD tipo scouter — esquinas cortadas rojas + borde neutro, heredado de la Fase 0 */
+  .hud {
+    position: relative;
+    border-radius: 0.375rem;
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.02), 0 10px 24px -16px rgba(0, 0, 0, 0.6);
+    transition: box-shadow 250ms ease, transform 250ms ease, border-color 250ms ease;
+  }
+  .hud:hover {
+    box-shadow: 0 0 0 1px rgba(229, 30, 58, 0.14), 0 12px 28px -14px rgba(229, 30, 58, 0.28);
+  }
+  .hud::before,
+  .hud::after {
+    content: "";
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-color: var(--red-bright);
+    opacity: 0.9;
+  }
+  .hud::before {
+    top: -1px;
+    left: -1px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+  }
+  .hud::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 2px solid;
+    border-right: 2px solid;
+  }
+
+  /* Aura roja detrás de los personajes — usar junto a CharacterArt */
+  .char-glow {
+    filter: drop-shadow(0 0 18px rgba(229, 30, 58, 0.35)) drop-shadow(0 0 46px rgba(229, 30, 58, 0.12));
+  }
+
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-widest2 text-muted;
+  }
+
+  /* Botón fantasma rojo — estilo base para acciones primarias tipo NeonButton */
+  .btn-neon {
+    @apply border border-maroon/50 bg-transparent px-4 py-2 font-mono text-xs uppercase tracking-widest2 text-maroon-light transition-all duration-250;
+  }
+  .btn-neon:hover {
+    @apply bg-maroon text-paper shadow-glow;
+  }
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
