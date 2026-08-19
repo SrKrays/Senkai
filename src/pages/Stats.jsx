@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
-import { goals as initialGoals, vegetaEvolution } from "../data/mockData";
+import { goals as initialGoals } from "../data/mockData";
 import { useTracker } from "../context/TrackerContext";
 import { useTraining } from "../context/TrainingContext";
 import { useNutrition } from "../context/NutritionContext";
 import { useSupplementation } from "../context/SupplementationContext";
 import { usePoints } from "../context/PointsContext";
-import { getVegetaStage } from "../utils/evolution";
+import { useCharacter } from "../context/CharacterContext";
+import { useRank } from "../context/RankContext";
 import { toISO, startOfWeekMonday, monthLabel } from "../utils/date";
 
 const LINE_COLORS = { gym: "#3AAEEC", comida: "#D9A441", suplemento: "#D7263D" };
@@ -60,9 +61,14 @@ export default function Stats() {
 
   // El progreso de Vegeta combina Tracker + Entrenamiento + Nutrición + Suplementación,
   // igual que en el resto de la app.
-  const { current, next, progress } = getVegetaStage(powerLevel, vegetaEvolution);
+  const { current, next, progress } = useCharacter();
 
-  const gymHabit = habits.find((h) => h.id === "gym");
+  // Rango por ejercicio (Fase 9, Mecánica 1) — sistema paralelo a Power
+  // Level, agrupado por músculo para mostrarlo ordenado.
+  const { byMuscle, loading: ranksLoading } = useRank();
+  const muscleGroups = Object.keys(byMuscle).sort();
+
+  const gymHabit = habits.find((h) => h.type === "gym");
 
   // Agrupamos los días transcurridos del mes en semanas (lunes a domingo) y sacamos
   // el % diario promedio de GYM / Comida / Suplemento por semana — así se ve en qué
@@ -238,6 +244,47 @@ export default function Stats() {
                   onChange={(e) => updateObjectiveProgress(o.id, Number(e.target.value))}
                   className="accent-maroon"
                 />
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Rango por ejercicio — paralelo a Power Level, ratio peso levantado / peso
+          corporal contra 14 ejercicios curados, agrupados por músculo. */}
+      <div className="mb-10">
+        <p className="eyebrow mb-4">Rango por ejercicio</p>
+        {ranksLoading ? (
+          <p className="text-sm text-muted">Cargando...</p>
+        ) : muscleGroups.length === 0 ? (
+          <Card className="text-sm text-muted">No se pudo cargar el catálogo de ejercicios.</Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {muscleGroups.map((muscle) => (
+              <Card key={muscle} className="flex flex-col gap-3">
+                <p className="eyebrow text-maroon">{muscle}</p>
+                {byMuscle[muscle].map((r) => (
+                  <div key={r.slug} className="border-t border-line pt-3 first:border-none first:pt-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">{r.name}</p>
+                      {r.tierName ? <Tag tone="teal">{r.tierName}</Tag> : <Tag>Sin marca</Tag>}
+                    </div>
+                    {r.prKg ? (
+                      <>
+                        <p className="font-mono text-xs text-muted">
+                          PR {r.prKg}kg · ratio {r.ratio?.toFixed(2)}x tu peso
+                        </p>
+                        <div className="mt-2">
+                          <ProgressBar progress={r.progressToNext} />
+                        </div>
+                      </>
+                    ) : (
+                      <p className="font-mono text-xs text-muted">
+                        Cargá una marca en Entrenamiento para verlo acá.
+                      </p>
+                    )}
+                  </div>
+                ))}
               </Card>
             ))}
           </div>

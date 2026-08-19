@@ -43,7 +43,7 @@ export default function Routines() {
   const today = new Date();
   const weekDates = getWeekDates(today);
 
-  const gymHabit = habits.find((h) => h.id === "gym");
+  const gymHabit = habits.find((h) => h.type === "gym");
   const daysTrainedThisWeek = weekDates.filter((d) => gymHabit?.checksByDate?.[toISO(d)]).length;
   const vegetaStage = getVegetaTrainingStage(daysTrainedThisWeek);
   const weekProgress = Math.min(1, daysTrainedThisWeek / (vegetaTraining.length - 1));

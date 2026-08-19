@@ -5,8 +5,7 @@ import { useTracker } from "../context/TrackerContext";
 import { useTraining } from "../context/TrainingContext";
 import { useNutrition } from "../context/NutritionContext";
 import { usePoints } from "../context/PointsContext";
-import { vegetaEvolution } from "../data/mockData";
-import { getVegetaStage } from "../utils/evolution";
+import { useCharacter } from "../context/CharacterContext";
 import { DIAS_CORTOS, currentStreak, daysInMonth, monthLabel, toISO } from "../utils/date";
 
 export default function Supplementation() {
@@ -25,8 +24,7 @@ export default function Supplementation() {
   const { trainingScore } = useTraining();
   const { nutritionScore } = useNutrition();
   const { powerLevel } = usePoints();
-
-  const { current, next, progress } = getVegetaStage(powerLevel, vegetaEvolution);
+  const { current, next, progress } = useCharacter();
 
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");

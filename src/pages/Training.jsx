@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { PageHeader, Card, Tag, ProgressBar, CharacterArt } from "../components/ui";
+import ExerciseGifPreview from "../components/ExerciseGifPreview";
 import { useTraining } from "../context/TrainingContext";
 import { useTracker } from "../context/TrackerContext";
 import { useNutrition } from "../context/NutritionContext";
 import { useSupplementation } from "../context/SupplementationContext";
 import { usePoints } from "../context/PointsContext";
-import { vegetaEvolution } from "../data/mockData";
-import { getVegetaStage } from "../utils/evolution";
+import { useAuth } from "../context/AuthContext";
+import { useCharacter } from "../context/CharacterContext";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { apiFetch } from "../utils/apiClient";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -27,6 +30,7 @@ export default function Training() {
   const { nutritionScore } = useNutrition();
   const { supplementationScore } = useSupplementation();
   const { powerLevel } = usePoints();
+  const { token } = useAuth();
 
   const [expandedId, setExpandedId] = useState(null);
   const [newWeight, setNewWeight] = useState("");
@@ -45,12 +49,43 @@ export default function Training() {
   const [newMuscle, setNewMuscle] = useState("");
   const [newUnit, setNewUnit] = useState("kg");
 
+  // Autocompletado de ejercicios (WorkoutX) — busca a medida que se tipea el
+  // nombre, con debounce para no gastar cuota en cada tecla.
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedSuggestionId, setSelectedSuggestionId] = useState(null);
+  const debouncedName = useDebouncedValue(newName, 400);
+
+  useEffect(() => {
+    if (!showNewExercise || debouncedName.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    apiFetch(`/api/external/exercises?q=${encodeURIComponent(debouncedName.trim())}`, { token })
+      .then((res) => {
+        if (!cancelled) setSuggestions(res);
+      })
+      .catch(() => {
+        if (!cancelled) setSuggestions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedName, showNewExercise, token]);
+
+  function selectSuggestion(s) {
+    setNewName(s.name);
+    setNewMuscle(s.target || s.bodyPart || "");
+    setSelectedSuggestionId(s.id);
+    setSuggestions([]);
+  }
+
   // Si el ejercicio expandido se borra, cerramos el panel.
   useEffect(() => {
     if (expandedId && !exercises.some((ex) => ex.id === expandedId)) setExpandedId(null);
   }, [exercises, expandedId]);
 
-  const { current, next, progress } = getVegetaStage(powerLevel, vegetaEvolution);
+  const { current, next, progress } = useCharacter();
 
   function toggleExpand(id) {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -98,6 +133,17 @@ export default function Training() {
     setNewName("");
     setNewMuscle("");
     setNewUnit("kg");
+    setSelectedSuggestionId(null);
+    setSuggestions([]);
+    setShowNewExercise(false);
+  }
+
+  function cancelNewExercise() {
+    setNewName("");
+    setNewMuscle("");
+    setNewUnit("kg");
+    setSelectedSuggestionId(null);
+    setSuggestions([]);
     setShowNewExercise(false);
   }
 
@@ -298,13 +344,37 @@ export default function Training() {
             ) : (
               <div className="flex flex-col gap-2">
                 <p className="eyebrow mb-1">Nuevo ejercicio</p>
+                <p className="mb-1 text-xs text-muted">
+                  Empezá a tipear el nombre y te sugerimos ejercicios reales (con gif) de la base de WorkoutX.
+                </p>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <input
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Nombre (ej: Curl bíceps)"
-                    className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                  />
+                  <div className="relative flex-1">
+                    <input
+                      value={newName}
+                      onChange={(e) => {
+                        setNewName(e.target.value);
+                        setSelectedSuggestionId(null);
+                      }}
+                      placeholder="Nombre (ej: Curl bíceps)"
+                      className="w-full border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+                    />
+                    {suggestions.length > 0 && (
+                      <div className="hud absolute left-0 right-0 top-full z-10 mt-1 max-h-56 overflow-y-auto border border-maroon/25 bg-card text-ink">
+                        {suggestions.map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => selectSuggestion(s)}
+                            className="flex w-full flex-col items-start gap-0.5 border-b border-maroon/10 px-3 py-2 text-left text-sm last:border-none hover:bg-maroon/10"
+                          >
+                            <span className="font-semibold">{s.name}</span>
+                            <span className="font-mono text-[10px] uppercase tracking-widest2 text-muted">
+                              {[s.bodyPart, s.target, s.equipment].filter(Boolean).join(" · ")}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <input
                     value={newMuscle}
                     onChange={(e) => setNewMuscle(e.target.value)}
@@ -325,13 +395,24 @@ export default function Training() {
                       Agregar
                     </button>
                     <button
-                      onClick={() => setShowNewExercise(false)}
+                      onClick={cancelNewExercise}
                       className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
                     >
                       Cancelar
                     </button>
                   </div>
                 </div>
+
+                {selectedSuggestionId && (
+                  <div className="mt-2 flex items-center gap-3 border-t border-maroon/10 pt-3">
+                    <ExerciseGifPreview
+                      exerciseId={selectedSuggestionId}
+                      alt={newName}
+                      className="h-20 w-20 border border-maroon/20"
+                    />
+                    <p className="text-xs text-muted">Vista previa de WorkoutX — se agrega junto al ejercicio.</p>
+                  </div>
+                )}
               </div>
             )}
           </Card>

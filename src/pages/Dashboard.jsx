@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { PageHeader, Card, StatPill, ProgressBar, Tag, CharacterArt } from "../components/ui";
 import PowerReader from "../components/PowerReader";
 import { useTraining } from "../context/TrainingContext";
 import { useTracker } from "../context/TrackerContext";
 import { usePoints } from "../context/PointsContext";
-import { vegetaEvolution, groups, user } from "../data/mockData";
-import { getVegetaStage } from "../utils/evolution";
+import { useAuth } from "../context/AuthContext";
+import { useGroup } from "../context/GroupContext";
+import { useCharacter } from "../context/CharacterContext";
+import { useProfile } from "../context/ProfileContext";
 import { currentStreak } from "../utils/date";
 
 function exerciseGrowthPct(progressLog, exerciseId) {
@@ -30,12 +33,21 @@ export default function Dashboard() {
   const { exercises, progressLog, benchKg } = useTraining();
   const { habits, today } = useTracker();
   const { powerLevel } = usePoints();
+  const { user } = useAuth();
+  const { group, loading: groupLoading, notInGroup } = useGroup();
+  const { current, next, progress } = useCharacter();
+  const { heightCm, latestWeightKg, weightLog } = useProfile();
 
-  const { current, next, progress } = getVegetaStage(powerLevel, vegetaEvolution);
-
-  const gymHabit = habits.find((h) => h.id === "gym");
+  const gymHabit = habits.find((h) => h.type === "gym");
   const streak = gymHabit ? currentStreak(gymHabit.checksByDate, today) : 0;
   const totalWorkouts = progressLog.length;
+
+  // Evolución de peso: delta entre el primer y el último registro cargado —
+  // null si todavía no hay al menos dos para comparar.
+  const weightGrowthKg =
+    weightLog.length >= 2
+      ? Number((weightLog[weightLog.length - 1].weightKg - weightLog[0].weightKg).toFixed(1))
+      : null;
 
   const bestExercises = exercises
     .map((ex) => ({ ...ex, growthPct: exerciseGrowthPct(progressLog, ex.id) }))
@@ -43,8 +55,10 @@ export default function Dashboard() {
     .sort((a, b) => b.growthPct - a.growthPct)
     .slice(0, 3);
 
-  const group = groups[0];
-  const groupLeader = [...group.members].sort((a, b) => b.benchKg - a.benchKg)[0];
+  const goal = group?.goal;
+  const groupLeader = group && goal
+    ? [...group.members].sort((a, b) => b[goal.exercise] - a[goal.exercise])[0]
+    : null;
 
   return (
     <div>
@@ -55,9 +69,12 @@ export default function Dashboard() {
       />
 
       {/* Hero — Vegeta completo + Power Level, el punto de entrada visual */}
-      <Card className="mb-6 flex flex-col gap-8 py-8 lg:flex-row lg:items-center">
+      <Card className="relative mb-6 flex flex-col gap-8 overflow-hidden py-8 lg:flex-row lg:items-center">
+        <div className="scanlines" />
         <div className="flex flex-col items-center gap-4 text-center lg:items-start lg:text-left">
-          <CharacterArt src={current.img} alt={current.name} width={180} height={300} />
+          <div className="aura-pulse relative">
+            <CharacterArt src={current.img} alt={current.name} width={180} height={300} />
+          </div>
         </div>
 
         <div className="flex-1">
@@ -78,9 +95,16 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-1 lg:w-56">
-          <StatPill label="Racha activa" value={`${streak} días`} />
+          <StatPill label="Racha activa" value={streak} suffix=" días" />
           <StatPill label="Entrenos totales" value={totalWorkouts} />
-          <StatPill label="PR press banca" value={`${benchKg} kg`} />
+          <StatPill label="PR press banca" value={benchKg} suffix=" kg" />
+          <StatPill label="Peso corporal" value={latestWeightKg ?? "Sin datos"} suffix={latestWeightKg ? " kg" : ""} />
+          <StatPill label="Altura" value={heightCm ?? "Sin datos"} suffix={heightCm ? " cm" : ""} />
+          <StatPill
+            label="Evolución de peso"
+            value={weightGrowthKg === null ? "Sin datos" : weightGrowthKg > 0 ? `+${weightGrowthKg}` : `${weightGrowthKg}`}
+            suffix={weightGrowthKg === null ? "" : " kg"}
+          />
         </div>
       </Card>
 
@@ -98,8 +122,14 @@ export default function Dashboard() {
             </p>
           ) : (
             <ul className="flex flex-col gap-3">
-              {bestExercises.map((ex) => (
-                <li key={ex.id} className="flex items-center justify-between border-b border-ink/10 pb-3 last:border-none">
+              {bestExercises.map((ex, i) => (
+                <motion.li
+                  key={ex.id}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.08, duration: 0.3, ease: "easeOut" }}
+                  className="flex items-center justify-between border-b border-ink/10 pb-3 last:border-none"
+                >
                   <div>
                     <p className="text-sm font-semibold">{ex.name}</p>
                     <p className="font-mono text-xs text-muted">{ex.muscle}</p>
@@ -107,7 +137,7 @@ export default function Dashboard() {
                   <span className="font-mono text-sm font-semibold text-teal-dark">
                     +{Math.round(ex.growthPct)}%
                   </span>
-                </li>
+                </motion.li>
               ))}
             </ul>
           )}
@@ -115,19 +145,28 @@ export default function Dashboard() {
 
         {/* En qué grupo estoy */}
         <Card>
-          <p className="eyebrow mb-4">Tu grupo — {group.name}</p>
-          <p className="text-sm font-semibold">{group.goal.title}</p>
-          <p className="mb-3 font-mono text-xs text-muted">
-            Premio: {group.goal.prize} · meta {group.goal.targetKg}kg en banca
-          </p>
-          <ProgressBar progress={Math.min(1, groupLeader.benchKg / group.goal.targetKg)} />
-          <p className="mt-4 eyebrow mb-2">Va ganando</p>
-          <p className="text-sm">
-            <span className="font-semibold text-maroon">{groupLeader.name}</span> con {groupLeader.benchKg}kg en banca
-          </p>
-          <Link to="/grupos" className="mt-4 inline-block font-mono text-xs uppercase tracking-widest2 text-maroon underline underline-offset-4">
-            Ver grupo completo →
-          </Link>
+          {groupLoading ? (
+            <p className="text-sm text-muted">Cargando tu grupo...</p>
+          ) : notInGroup || !group || !goal || !groupLeader ? (
+            <p className="text-sm text-muted">Todavía no pertenecés a ningún grupo.</p>
+          ) : (
+            <>
+              <p className="eyebrow mb-4">Tu grupo — {group.name}</p>
+              <p className="text-sm font-semibold">{goal.title}</p>
+              <p className="mb-3 font-mono text-xs text-muted">
+                Premio: {goal.prize} · meta {goal.targetKg}kg en {goal.exerciseLabel.toLowerCase()}
+              </p>
+              <ProgressBar progress={goal.targetKg ? Math.min(1, groupLeader[goal.exercise] / goal.targetKg) : 0} />
+              <p className="mt-4 eyebrow mb-2">Va ganando</p>
+              <p className="text-sm">
+                <span className="font-semibold text-maroon">{groupLeader.name}</span> con {groupLeader[goal.exercise]}kg en{" "}
+                {goal.exerciseLabel.toLowerCase()}
+              </p>
+              <Link to="/grupos" className="mt-4 inline-block font-mono text-xs uppercase tracking-widest2 text-maroon underline underline-offset-4">
+                Ver grupo completo →
+              </Link>
+            </>
+          )}
         </Card>
       </div>
 

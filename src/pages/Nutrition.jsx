@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
 import { useNutrition } from "../context/NutritionContext";
 import { useTracker } from "../context/TrackerContext";
 import { useTraining } from "../context/TrainingContext";
 import { useSupplementation } from "../context/SupplementationContext";
 import { usePoints } from "../context/PointsContext";
-import { gokuEating, vegetaEvolution } from "../data/mockData";
-import { getVegetaStage } from "../utils/evolution";
+import { useAuth } from "../context/AuthContext";
+import { useCharacter } from "../context/CharacterContext";
+import { gokuEating } from "../data/mockData";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { apiFetch } from "../utils/apiClient";
 
 function getGokuStage(mealsLoggedToday) {
   const idx = Math.min(mealsLoggedToday, gokuEating.length - 1);
@@ -14,6 +17,232 @@ function getGokuStage(mealsLoggedToday) {
 }
 
 const EMPTY_DRAFT = { description: "", calories: "", notes: "", imageUrl: null };
+
+// Card de una división de comida — es su propio componente (no un bloque
+// inline dentro del .map()) porque necesita su propio estado de búsqueda
+// (autocompletado USDA) con debounce, y los hooks no pueden vivir dentro
+// de un callback de map.
+function MealSlotCard({
+  slot,
+  entry,
+  isEditingEntry,
+  isEditingName,
+  slotNameDraft,
+  draft,
+  token,
+  onStartEditSlotName,
+  onSlotNameDraftChange,
+  onSaveSlotName,
+  onDeleteSlot,
+  onSetDraft,
+  onImagePick,
+  onRegister,
+  onStartEditLog,
+  onSaveEditLog,
+  onCancelEditLog,
+  onDeleteLog,
+}) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedFood, setSelectedFood] = useState(null);
+  const [loadingFood, setLoadingFood] = useState(false);
+  const showForm = !entry || isEditingEntry;
+  const debouncedDescription = useDebouncedValue(draft.description, 400);
+
+  useEffect(() => {
+    if (!showForm || debouncedDescription.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    apiFetch(`/api/external/foods?q=${encodeURIComponent(debouncedDescription.trim())}`, { token })
+      .then((res) => {
+        if (!cancelled) setSuggestions(res);
+      })
+      .catch(() => {
+        if (!cancelled) setSuggestions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedDescription, showForm, token]);
+
+  async function selectFood(food) {
+    // Llenamos la descripción al toque (eso sí viene bien en la búsqueda);
+    // las calorías y macros vienen de un segundo pedido al detalle completo
+    // — la búsqueda casi nunca trae esos datos usables, sobre todo en
+    // productos de marca.
+    onSetDraft(slot.id, { description: food.description });
+    setSuggestions([]);
+    setSelectedFood(null);
+    setLoadingFood(true);
+    try {
+      const detail = await apiFetch(`/api/external/foods/${food.fdcId}`, { token });
+      onSetDraft(slot.id, {
+        description: detail.description || food.description,
+        calories: detail.calories != null ? String(Math.round(detail.calories)) : draft.calories,
+      });
+      setSelectedFood(detail);
+    } catch {
+      setSelectedFood(food);
+    } finally {
+      setLoadingFood(false);
+    }
+  }
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        {isEditingName ? (
+          <div className="flex flex-1 items-center gap-2">
+            <input
+              value={slotNameDraft}
+              onChange={(e) => onSlotNameDraftChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSaveSlotName(slot.id)}
+              autoFocus
+              className="flex-1 border border-maroon/30 bg-transparent px-2 py-1 text-sm outline-none focus:border-maroon"
+            />
+            <button
+              onClick={() => onSaveSlotName(slot.id)}
+              className="bg-maroon px-2 py-1 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250"
+            >
+              OK
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm font-semibold">{slot.name}</p>
+        )}
+        <span className="flex shrink-0 gap-1.5">
+          <button
+            onClick={() => onStartEditSlotName(slot)}
+            aria-label={`Renombrar ${slot.name}`}
+            title="Renombrar división"
+            className="text-muted hover:text-maroon"
+          >
+            ✎
+          </button>
+          <button
+            onClick={() => onDeleteSlot(slot.id)}
+            aria-label={`Borrar ${slot.name}`}
+            title="Borrar división"
+            className="text-muted hover:text-maroon"
+          >
+            ✕
+          </button>
+        </span>
+      </div>
+
+      {entry && !isEditingEntry ? (
+        <div className="flex flex-col gap-2">
+          {entry.imageUrl && (
+            <img src={entry.imageUrl} alt={entry.description} className="h-32 w-full border border-maroon/15 object-cover" />
+          )}
+          <p className="text-sm">{entry.description || "—"}</p>
+          <Tag>{entry.calories} kcal</Tag>
+          {entry.notes && <p className="text-xs text-muted">{entry.notes}</p>}
+          <div className="flex gap-3 border-t border-maroon/10 pt-2">
+            <button
+              onClick={() => onStartEditLog(slot.id)}
+              className="font-mono text-[10px] uppercase tracking-widest2 text-maroon underline underline-offset-4"
+            >
+              Editar
+            </button>
+            <button
+              onClick={() => onDeleteLog(slot.id)}
+              className="font-mono text-[10px] uppercase tracking-widest2 text-muted underline underline-offset-4 hover:text-maroon"
+            >
+              Borrar registro
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="relative">
+            <input
+              value={draft.description}
+              onChange={(e) => {
+                onSetDraft(slot.id, { description: e.target.value });
+                setSelectedFood(null);
+              }}
+              placeholder="¿Qué comiste? (en inglés sugiere mejor, ej: noodles)"
+              className="w-full border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+            />
+            {suggestions.length > 0 && (
+              <div className="hud absolute left-0 right-0 top-full z-10 mt-1 max-h-56 overflow-y-auto border border-maroon/25 bg-card text-ink">
+                {suggestions.map((f) => (
+                  <button
+                    key={f.fdcId}
+                    onClick={() => selectFood(f)}
+                    className="flex w-full flex-col items-start gap-0.5 border-b border-maroon/10 px-3 py-2 text-left text-sm last:border-none hover:bg-maroon/10"
+                  >
+                    <span className="font-semibold">{f.description}</span>
+                    <span className="font-mono text-[10px] uppercase tracking-widest2 text-muted">
+                      {f.calories != null ? `${Math.round(f.calories)} kcal` : "—"}
+                      {f.brandOwner ? ` · ${f.brandOwner}` : ""}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {loadingFood && (
+            <p className="font-mono text-[10px] uppercase tracking-widest2 text-muted">Buscando info nutricional…</p>
+          )}
+          {!loadingFood && selectedFood && (
+            <p className="font-mono text-[10px] uppercase tracking-widest2 text-muted">
+              {[
+                selectedFood.proteinG != null ? `Proteína ${selectedFood.proteinG}g` : null,
+                selectedFood.carbsG != null ? `Carbs ${selectedFood.carbsG}g` : null,
+                selectedFood.fatG != null ? `Grasa ${selectedFood.fatG}g` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "Este alimento no trae más detalle en USDA"}
+            </p>
+          )}
+
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={draft.calories}
+              onChange={(e) => onSetDraft(slot.id, { calories: e.target.value })}
+              placeholder="Calorías"
+              className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+            />
+          </div>
+          <textarea
+            value={draft.notes}
+            onChange={(e) => onSetDraft(slot.id, { notes: e.target.value })}
+            placeholder="Notas (opcional)"
+            rows={2}
+            className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+          />
+          <div className="flex items-center gap-2">
+            <label className="flex-1 cursor-pointer border border-dashed border-maroon/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-widest2 text-muted hover:border-maroon">
+              {draft.imageUrl ? "Imagen cargada ✓" : "Subir imagen"}
+              <input type="file" accept="image/*" onChange={(e) => onImagePick(slot.id, e.target.files?.[0])} className="hidden" />
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => (isEditingEntry ? onSaveEditLog(slot.id) : onRegister(slot.id))}
+              className="bg-maroon px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250"
+            >
+              {isEditingEntry ? "Guardar" : "Registrar comida"}
+            </button>
+            {isEditingEntry && (
+              <button
+                onClick={() => onCancelEditLog(slot.id)}
+                className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
 
 export default function Nutrition() {
   const {
@@ -36,6 +265,8 @@ export default function Nutrition() {
   const { trainingScore } = useTraining();
   const { supplementationScore } = useSupplementation();
   const { powerLevel } = usePoints();
+  const { token } = useAuth();
+  const { current: vegetaStage } = useCharacter();
 
   const [drafts, setDrafts] = useState({});
   const [editingSlotId, setEditingSlotId] = useState(null);
@@ -47,7 +278,6 @@ export default function Nutrition() {
 
   const calPct = calorieTarget ? caloriesToday / calorieTarget : 0;
   const gokuStage = getGokuStage(mealsLoggedToday);
-  const { current: vegetaStage } = getVegetaStage(powerLevel, vegetaEvolution);
 
   function draftFor(slotId) {
     return drafts[slotId] || EMPTY_DRAFT;
@@ -197,132 +427,29 @@ export default function Nutrition() {
             </Card>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
-              {mealSlots.map((slot) => {
-                const entry = todayLogs[slot.id];
-                const isEditing = editingSlotId === slot.id;
-                const draft = draftFor(slot.id);
-
-                return (
-                  <Card key={slot.id} className="flex flex-col gap-3">
-                    <div className="flex items-start justify-between gap-2">
-                      {editingSlotName === slot.id ? (
-                        <div className="flex flex-1 items-center gap-2">
-                          <input
-                            value={slotNameDraft}
-                            onChange={(e) => setSlotNameDraft(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && saveSlotName(slot.id)}
-                            autoFocus
-                            className="flex-1 border border-maroon/30 bg-transparent px-2 py-1 text-sm outline-none focus:border-maroon"
-                          />
-                          <button
-                            onClick={() => saveSlotName(slot.id)}
-                            className="bg-maroon px-2 py-1 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250"
-                          >
-                            OK
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-sm font-semibold">{slot.name}</p>
-                      )}
-                      <span className="flex shrink-0 gap-1.5">
-                        <button
-                          onClick={() => startEditSlotName(slot)}
-                          aria-label={`Renombrar ${slot.name}`}
-                          title="Renombrar división"
-                          className="text-muted hover:text-maroon"
-                        >
-                          ✎
-                        </button>
-                        <button
-                          onClick={() => deleteMealSlot(slot.id)}
-                          aria-label={`Borrar ${slot.name}`}
-                          title="Borrar división"
-                          className="text-muted hover:text-maroon"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    </div>
-
-                    {entry && !isEditing ? (
-                      <div className="flex flex-col gap-2">
-                        {entry.imageUrl && (
-                          <img src={entry.imageUrl} alt={entry.description} className="h-32 w-full border border-maroon/15 object-cover" />
-                        )}
-                        <p className="text-sm">{entry.description || "—"}</p>
-                        <Tag>{entry.calories} kcal</Tag>
-                        {entry.notes && <p className="text-xs text-muted">{entry.notes}</p>}
-                        <div className="flex gap-3 border-t border-maroon/10 pt-2">
-                          <button
-                            onClick={() => startEditLog(slot.id)}
-                            className="font-mono text-[10px] uppercase tracking-widest2 text-maroon underline underline-offset-4"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => deleteMealLog(todayISO, slot.id)}
-                            className="font-mono text-[10px] uppercase tracking-widest2 text-muted underline underline-offset-4 hover:text-maroon"
-                          >
-                            Borrar registro
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <input
-                          value={draft.description}
-                          onChange={(e) => setDraft(slot.id, { description: e.target.value })}
-                          placeholder="¿Qué comiste?"
-                          className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                        />
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            value={draft.calories}
-                            onChange={(e) => setDraft(slot.id, { calories: e.target.value })}
-                            placeholder="Calorías (manual por ahora)"
-                            className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                          />
-                        </div>
-                        <textarea
-                          value={draft.notes}
-                          onChange={(e) => setDraft(slot.id, { notes: e.target.value })}
-                          placeholder="Notas (opcional)"
-                          rows={2}
-                          className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                        />
-                        <div className="flex items-center gap-2">
-                          <label className="flex-1 cursor-pointer border border-dashed border-maroon/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-widest2 text-muted hover:border-maroon">
-                            {draft.imageUrl ? "Imagen cargada ✓" : "Subir imagen"}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleImagePick(slot.id, e.target.files?.[0])}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => (isEditing ? saveEditLog(slot.id) : handleRegister(slot.id))}
-                            className="bg-maroon px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250"
-                          >
-                            {isEditing ? "Guardar" : "Registrar comida"}
-                          </button>
-                          {isEditing && (
-                            <button
-                              onClick={() => cancelEditLog(slot.id)}
-                              className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
-                            >
-                              Cancelar
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
+              {mealSlots.map((slot) => (
+                <MealSlotCard
+                  key={slot.id}
+                  slot={slot}
+                  entry={todayLogs[slot.id]}
+                  isEditingEntry={editingSlotId === slot.id}
+                  isEditingName={editingSlotName === slot.id}
+                  slotNameDraft={slotNameDraft}
+                  draft={draftFor(slot.id)}
+                  token={token}
+                  onStartEditSlotName={startEditSlotName}
+                  onSlotNameDraftChange={setSlotNameDraft}
+                  onSaveSlotName={saveSlotName}
+                  onDeleteSlot={deleteMealSlot}
+                  onSetDraft={setDraft}
+                  onImagePick={handleImagePick}
+                  onRegister={handleRegister}
+                  onStartEditLog={startEditLog}
+                  onSaveEditLog={saveEditLog}
+                  onCancelEditLog={cancelEditLog}
+                  onDeleteLog={(slotId) => deleteMealLog(todayISO, slotId)}
+                />
+              ))}
             </div>
           )}
 

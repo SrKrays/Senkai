@@ -1,20 +1,30 @@
-import { createContext, useContext, useMemo, useState } from "react";
-import {
-  exercises as initialExercises,
-  progressLog as initialProgressLog,
-  powerScale,
-} from "../data/mockData";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { powerScale } from "../data/mockData";
+import { notifyPR } from "../utils/notify";
+import { fireConfetti } from "../utils/confetti";
+import { apiFetch } from "../utils/apiClient";
+import { useAuth } from "./AuthContext";
 
-// El bench press (Press banca) es el ejercicio que mueve la escala de poder —
-// coincide con la escala definida en mockData ("≥Xkg banca"). Si se borra
-// este ejercicio, la escala simplemente cae a 0kg / Guerrero Base.
-const POWER_EXERCISE_ID = "bench";
+// El ejercicio que mueve la escala de poder se detecta por NOMBRE ("Press
+// banca", sin importar mayúsculas/acentos) — no por un id fijo, porque los
+// ids reales que da la API son Guids random. Mismo criterio que el mock
+// original, sin necesitar UI nueva para "elegir" el ejercicio de poder.
+const POWER_EXERCISE_NAME = "press banca";
 
 // Cuánto tiene que crecer el peso o las reps respecto al primer registro
 // para "llenar" el 100% de su aporte al puntaje de entrenamiento.
 const GROWTH_TARGET = 0.2; // 20%
 
 const TrainingContext = createContext(null);
+
+function normalize(s) {
+  return (s || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
 
 /** Etapa de la escala de poder según los kg actuales (misma lógica que el Tracker, pero por kg). */
 function getPowerStage(kg) {
@@ -34,9 +44,58 @@ function clampGrowth(first, last) {
   return Math.max(0, Math.min(1, (last - first) / (first * GROWTH_TARGET)));
 }
 
+function fromExerciseDto(e) {
+  return { id: e.id, name: e.name, muscle: e.muscle, unit: e.unit };
+}
+
+function fromMarkDto(m) {
+  return { id: m.id, exerciseId: m.exerciseId, date: m.date, weight: m.weight, reps: m.reps, spotted: m.spotted };
+}
+
+// Si la marca recién cargada coincide con el ejercicio del objetivo grupal
+// activo, el backend manda este aviso junto con la marca — festejamos según
+// si ya se cumplió la meta o recién se está aportando.
+function notifyGroupGoalProgress(gp) {
+  if (!gp?.matches) return;
+  if (gp.achieved) {
+    toast.success(`¡Objetivo grupal cumplido! ${gp.groupName} llegó a ${gp.exerciseLabel} ${gp.currentKg}kg 🎉`);
+    fireConfetti();
+  } else {
+    toast(`Sumaste al objetivo de ${gp.groupName} — ${gp.exerciseLabel}: ${gp.currentKg}/${gp.targetKg}kg`);
+  }
+}
+
 export function TrainingProvider({ children }) {
-  const [exercises, setExercises] = useState(initialExercises);
-  const [progressLog, setProgressLog] = useState(initialProgressLog);
+  const { token } = useAuth();
+  const [rawExercises, setRawExercises] = useState([]);
+  const [progressLog, setProgressLog] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token) {
+      setRawExercises([]);
+      setProgressLog([]);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([apiFetch("/api/exercises", { token }), apiFetch("/api/progress-marks", { token })])
+      .then(([exercisesRes, marksRes]) => {
+        if (cancelled) return;
+        setRawExercises(exercisesRes.map(fromExerciseDto));
+        setProgressLog(marksRes.map(fromMarkDto));
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("No se pudo cargar Entrenamiento.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   function marksFor(list, exerciseId) {
     return list.filter((p) => p.exerciseId === exerciseId).sort((a, b) => a.date.localeCompare(b.date));
@@ -54,84 +113,125 @@ export function TrainingProvider({ children }) {
     return { pr, trend };
   }
 
-  function recomputeAffected(nextLog, exerciseIds) {
-    setExercises((prevEx) =>
-      prevEx.map((e) => {
-        if (!exerciseIds.has(e.id)) return e;
-        const { pr, trend } = recomputeExercise(nextLog, e.id, e.unit);
+  // exercises "enriquecidos" con pr/trend, recalculados en cada render a
+  // partir de rawExercises + progressLog (misma idea que antes, solo que
+  // ahora se deriva en vez de guardarse aparte con setExercises).
+  const exercises = useMemo(
+    () =>
+      rawExercises.map((e) => {
+        const { pr, trend } = recomputeExercise(progressLog, e.id, e.unit);
         return { ...e, pr, trend };
-      })
-    );
-  }
+      }),
+    [rawExercises, progressLog]
+  );
 
-  function addExercise({ name, muscle, unit }) {
+  async function addExercise({ name, muscle, unit }) {
     if (!name.trim()) return;
-    const id = `ex-${Date.now()}`;
-    setExercises((prev) => [
-      ...prev,
-      { id, name: name.trim(), muscle: muscle.trim() || "General", unit: unit.trim() || "kg", pr: 0, trend: "Sin marcas" },
-    ]);
-    return id;
+    try {
+      const created = await apiFetch("/api/exercises", {
+        method: "POST",
+        token,
+        body: { name, muscle, unit },
+      });
+      setRawExercises((prev) => [...prev, fromExerciseDto(created)]);
+      return created.id;
+    } catch {
+      toast.error("No se pudo crear el ejercicio.");
+    }
   }
 
-  function deleteExercise(id) {
-    setExercises((prev) => prev.filter((e) => e.id !== id));
+  async function deleteExercise(id) {
+    const prevExercises = rawExercises;
+    const prevLog = progressLog;
+    setRawExercises((prev) => prev.filter((e) => e.id !== id));
     setProgressLog((prev) => prev.filter((p) => p.exerciseId !== id));
+    try {
+      await apiFetch(`/api/exercises/${id}`, { method: "DELETE", token });
+    } catch {
+      setRawExercises(prevExercises);
+      setProgressLog(prevLog);
+      toast.error("No se pudo borrar el ejercicio.");
+    }
   }
 
-  function addProgress({ exerciseId, weight, reps, date, spotted }) {
+  async function addProgress({ exerciseId, weight, reps, date, spotted }) {
     const numWeight = Number(weight) || 0;
     const numReps = Number(reps) || 0;
     if (!exerciseId || (numWeight <= 0 && numReps <= 0)) return;
-    const exercise = exercises.find((e) => e.id === exerciseId);
+    const exercise = rawExercises.find((e) => e.id === exerciseId);
     if (!exercise) return;
-    const entry = {
-      id: Date.now(),
-      date: date || new Date().toISOString().slice(0, 10),
-      exerciseId,
-      exercise: exercise.name,
-      muscle: exercise.muscle,
-      weight: numWeight,
-      reps: numReps,
-      spotted: !!spotted,
-    };
-    setProgressLog((prev) => {
-      const nextLog = [...prev, entry];
-      recomputeAffected(nextLog, new Set([exerciseId]));
-      return nextLog;
-    });
-  }
 
-  function updateProgress(id, patch) {
-    setProgressLog((prev) => {
-      const old = prev.find((p) => p.id === id);
-      if (!old) return prev;
-      const merged = { ...old, ...patch };
-      if (patch.weight !== undefined) merged.weight = Number(patch.weight) || 0;
-      if (patch.reps !== undefined) merged.reps = Number(patch.reps) || 0;
-      if (patch.exerciseId && patch.exerciseId !== old.exerciseId) {
-        const ex = exercises.find((e) => e.id === patch.exerciseId);
-        if (ex) {
-          merged.exercise = ex.name;
-          merged.muscle = ex.muscle;
-        }
+    // Detectamos PR ANTES de insertar la marca, contra el máximo previo real
+    // (misma regla que utils/points.js) — así el toast/confetti sale
+    // exactamente cuando el Power Level también sube por esta marca.
+    const priorMarks = marksFor(progressLog, exerciseId);
+    const priorMaxWeight = priorMarks.length ? Math.max(...priorMarks.map((m) => m.weight)) : -Infinity;
+    const priorMaxReps = priorMarks.length ? Math.max(...priorMarks.map((m) => m.reps)) : -Infinity;
+    const isWeightPR = numWeight > priorMaxWeight && numWeight > 0;
+    const isRepsPR = numReps > priorMaxReps && numReps > 0;
+
+    try {
+      const created = await apiFetch("/api/progress-marks", {
+        method: "POST",
+        token,
+        body: {
+          exerciseId,
+          date: date || new Date().toISOString().slice(0, 10),
+          weight: numWeight,
+          reps: numReps,
+          spotted: !!spotted,
+        },
+      });
+      setProgressLog((prev) => [...prev, fromMarkDto(created)]);
+
+      if (isWeightPR || isRepsPR) {
+        const detail = isWeightPR && isRepsPR
+          ? `${numWeight}${exercise.unit} × ${numReps} reps`
+          : isWeightPR
+          ? `${numWeight}${exercise.unit}`
+          : `${numReps} reps`;
+        notifyPR(exercise.name, detail);
+        fireConfetti();
       }
-      const nextLog = prev.map((p) => (p.id === id ? merged : p));
-      recomputeAffected(nextLog, new Set([old.exerciseId, merged.exerciseId]));
-      return nextLog;
-    });
+
+      notifyGroupGoalProgress(created.groupProgress);
+    } catch {
+      toast.error("No se pudo guardar la marca.");
+    }
   }
 
-  function deleteProgress(id) {
-    setProgressLog((prev) => {
-      const removed = prev.find((p) => p.id === id);
-      const nextLog = prev.filter((p) => p.id !== id);
-      if (removed) recomputeAffected(nextLog, new Set([removed.exerciseId]));
-      return nextLog;
-    });
+  async function updateProgress(id, patch) {
+    const old = progressLog.find((p) => p.id === id);
+    if (!old) return;
+    const merged = { ...old, ...patch };
+    if (patch.weight !== undefined) merged.weight = Number(patch.weight) || 0;
+    if (patch.reps !== undefined) merged.reps = Number(patch.reps) || 0;
+
+    try {
+      const updated = await apiFetch(`/api/progress-marks/${id}`, {
+        method: "PUT",
+        token,
+        body: { date: merged.date, weight: merged.weight, reps: merged.reps, spotted: !!merged.spotted },
+      });
+      setProgressLog((prev) => prev.map((p) => (p.id === id ? fromMarkDto(updated) : p)));
+    } catch {
+      toast.error("No se pudo editar la marca.");
+    }
   }
 
-  const benchKg = exercises.find((e) => e.id === POWER_EXERCISE_ID)?.pr ?? 0;
+  async function deleteProgress(id) {
+    const prevLog = progressLog;
+    setProgressLog((prev) => prev.filter((p) => p.id !== id));
+    try {
+      await apiFetch(`/api/progress-marks/${id}`, { method: "DELETE", token });
+    } catch {
+      setProgressLog(prevLog);
+      toast.error("No se pudo borrar la marca.");
+    }
+  }
+
+  const powerExercise = rawExercises.find((e) => normalize(e.name) === POWER_EXERCISE_NAME);
+  const benchKg = powerExercise ? recomputeExercise(progressLog, powerExercise.id, powerExercise.unit).pr : 0;
   const power = useMemo(() => getPowerStage(benchKg), [benchKg]);
 
   // Puntaje de entrenamiento (0-1): promedio, por ejercicio con ≥2 marcas, del
@@ -154,6 +254,7 @@ export function TrainingProvider({ children }) {
   const value = {
     exercises,
     progressLog,
+    loading,
     addExercise,
     deleteExercise,
     addProgress,

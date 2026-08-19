@@ -1,5 +1,5 @@
 {
-  "name": "kray-sekai",
+  "name": "senkai",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,8 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "framer-motion": "^12.43.0",
+    "lucide-react": "^0.475.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-easy-crop": "^6.2.3",
+    "sonner": "^1.7.4"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

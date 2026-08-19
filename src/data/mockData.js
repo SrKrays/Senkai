@@ -177,15 +177,74 @@ export const groups = [
     // La escala de poder es Base < SSJ1 < SSJ2 < SSJ3 < Dios < Blue < Ultra Ego.
     // El que tiene Ultra Ego (Nacho) es el más fuerte del grupo, así que también
     // va primero en la carrera de banca.
+    // `delta` = ganancia de Power Level esta semana (ilustrativo, hasta que haya
+    // backend con historial real). `lastActivity`/`activityTime` alimentan el
+    // feed de "Actividad reciente".
+    // exercisePct/supplementPct/nutritionPct = consistencia ilustrativa (0-100)
+    // en cada pilar, hasta que haya backend con datos reales de cada integrante.
     members: [
-      { name: "Nacho", vegetaStage: 6, benchKg: 100, squatKg: 165, deadliftKg: 190 },
-      { name: "Mateo", vegetaStage: 5, benchKg: 90, squatKg: 140, deadliftKg: 160 },
-      { name: "Mono", vegetaStage: 3, benchKg: 75, squatKg: 120, deadliftKg: 150 },
-      { name: "Carlo", vegetaStage: 2, benchKg: 55, squatKg: 90, deadliftKg: 110 },
+      {
+        name: "Nacho",
+        vegetaStage: 6,
+        benchKg: 100,
+        squatKg: 165,
+        deadliftKg: 190,
+        delta: 4500,
+        exercisePct: 92,
+        supplementPct: 85,
+        nutritionPct: 78,
+        lastActivity: "Nuevo PR en Banca — 100kg",
+        activityTime: "Hace 10m",
+      },
+      {
+        name: "Mateo",
+        vegetaStage: 5,
+        benchKg: 90,
+        squatKg: 140,
+        deadliftKg: 160,
+        delta: 2300,
+        exercisePct: 84,
+        supplementPct: 70,
+        nutritionPct: 66,
+        lastActivity: "Subió de nivel",
+        activityTime: "Hace 1h",
+      },
+      {
+        name: "Mono",
+        vegetaStage: 3,
+        benchKg: 75,
+        squatKg: 120,
+        deadliftKg: 150,
+        delta: 1800,
+        exercisePct: 71,
+        supplementPct: 55,
+        nutritionPct: 60,
+        lastActivity: "Nuevo PR en Sentadilla — 120kg",
+        activityTime: "Hace 2h",
+      },
+      {
+        name: "Carlo",
+        vegetaStage: 2,
+        benchKg: 55,
+        squatKg: 90,
+        deadliftKg: 110,
+        delta: 1200,
+        exercisePct: 58,
+        supplementPct: 40,
+        nutritionPct: 45,
+        lastActivity: "Entrenamiento completado — Push Day",
+        activityTime: "Ayer",
+      },
     ],
-    // Meta grupal: quién levanta más peso en banca. targetKg es la referencia de
-    // la "carrera" — al llegar a ese peso, ese integrante se queda con la Monster.
-    goal: { title: "¿Quién hace más peso en banca?", prize: "Lata de Monster", targetKg: 100 },
+    // Meta grupal — editable desde la web (botón "+ Nuevo objetivo"). `exercise`
+    // apunta a la clave del ejercicio elegido (benchKg/squatKg/deadliftKg).
+    goal: {
+      title: "¿Quién hace más peso en banca?",
+      exercise: "benchKg",
+      exerciseLabel: "Banca",
+      prize: "Lata de Monster",
+      targetKg: 100,
+    },
   },
 ];
 

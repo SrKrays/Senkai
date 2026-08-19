@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
 import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
-import { vegetaEvolution } from "../data/mockData";
 import { useTracker } from "../context/TrackerContext";
 import { useTraining } from "../context/TrainingContext";
 import { useNutrition } from "../context/NutritionContext";
 import { useSupplementation } from "../context/SupplementationContext";
 import { usePoints } from "../context/PointsContext";
-import { getVegetaStage } from "../utils/evolution";
+import { useCharacter } from "../context/CharacterContext";
 import { DIAS_CORTOS, getWeekDates, addWeeks, toISO, isSameDay, monthLabel, monthStats } from "../utils/date";
 
 const TYPE_BUTTON_CLS = (active) =>
@@ -54,7 +53,7 @@ export default function Tracker() {
 
   // El progreso de Vegeta ahora sube por el Power Level real (Entrenamiento +
   // Suplementos + Alimentación + Tracker) — ver utils/points.js.
-  const { current, next, progress } = getVegetaStage(powerLevel, vegetaEvolution);
+  const { current, next, progress } = useCharacter();
 
   function handleAddHabit() {
     if (!newHabitName.trim()) return;

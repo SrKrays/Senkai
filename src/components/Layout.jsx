@@ -1,7 +1,11 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import PowerReader from "./PowerReader";
+import LevelUpOverlay from "./LevelUpOverlay";
+import CharacterOnboarding from "./CharacterOnboarding";
+import Logo, { LogoBadge } from "./Logo";
 import { usePoints } from "../context/PointsContext";
-import { user } from "../data/mockData";
+import { useAuth } from "../context/AuthContext";
 
 const nav = [
   { to: "/", label: "Dashboard", num: "00" },
@@ -13,32 +17,34 @@ const nav = [
   { to: "/suplementacion", label: "Suplementación", num: "06" },
   { to: "/grupos", label: "Grupos", num: "07" },
   { to: "/estadisticas", label: "Objetivos y Estadísticas", num: "08" },
-  { to: "/personalizacion", label: "Personalización", num: "09" },
-  { to: "/admin", label: "Config. Admin", num: "10" },
+  { to: "/personalizacion", label: "User", num: "09" },
 ];
 
 export default function Layout() {
   const { powerLevel } = usePoints();
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const visibleNav = nav.filter((item) => !item.adminOnly || user?.role === "Admin");
+
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
 
   return (
     <div className="min-h-screen bg-paper text-ink font-body">
+      <LevelUpOverlay />
+      <CharacterOnboarding />
       <div className="flex w-full">
         {/* Sidebar — desktop */}
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-cream md:flex">
-          <div className="flex items-center gap-3 border-b border-line px-6 py-6">
-            <span className="hud flex h-9 w-9 shrink-0 items-center justify-center border border-maroon/40 bg-maroon/10 font-display text-lg text-maroon shadow-glow">
-              K
-            </span>
-            <div>
-              <span className="block font-display text-2xl leading-none tracking-widest2 text-maroon">
-                KRAY SEKAI
-              </span>
-              <span className="block font-mono text-[9px] tracking-widest2 text-muted">カイの道</span>
-            </div>
+          <div className="flex items-center border-b border-line px-6 py-6">
+            <Logo badgeSize={38} />
           </div>
 
           <nav className="flex-1 overflow-y-auto px-3 py-4">
-            {nav.map((item) => (
+            {visibleNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -59,13 +65,21 @@ export default function Layout() {
 
           <div className="flex items-center gap-3 border-t border-line px-4 py-4">
             <span className="hud flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-maroon/50 bg-maroon/10 font-display text-base text-maroon shadow-glow">
-              {user.name.charAt(0)}
+              {user?.name?.charAt(0) ?? "?"}
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="eyebrow mb-0.5">Sesión</p>
-              <p className="text-sm font-semibold text-maroon">{user.name}</p>
-              <p className="font-mono text-[10px] text-muted uppercase">{user.role}</p>
+              <p className="truncate text-sm font-semibold text-maroon">{user?.name}</p>
+              <p className="font-mono text-[10px] text-muted uppercase">{user?.role}</p>
             </div>
+            <button
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
+              className="shrink-0 text-muted hover:text-maroon"
+            >
+              ⏻
+            </button>
           </div>
         </aside>
 
@@ -73,25 +87,33 @@ export default function Layout() {
         <div className="flex min-h-screen flex-1 flex-col">
           {/* Top bar */}
           <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line bg-paper/95 px-5 py-3 backdrop-blur md:px-8">
-            <div className="md:hidden flex items-center gap-2">
-              <span className="hud flex h-7 w-7 items-center justify-center border border-maroon/40 bg-maroon/10 font-display text-sm text-maroon shadow-glow">
-                K
-              </span>
-              <span className="font-display text-xl tracking-widest2 text-maroon">KRAY SEKAI</span>
+            <div className="flex items-center gap-2 md:hidden">
+              <LogoBadge badgeSize={28} />
+              <span className="font-display text-xl tracking-widest2 text-maroon-light">SENKAI</span>
             </div>
             <p className="hidden text-sm text-muted md:block">
-              Hola, <span className="font-semibold text-maroon">{user.name}</span> — a subir de nivel hoy también.
+              Hola, <span className="font-semibold text-maroon">{user?.name}</span> — a subir de nivel hoy también.
             </p>
             <PowerReader value={powerLevel} size="sm" />
           </header>
 
           <main className="flex-1 px-5 py-8 pb-24 md:px-10 md:py-10 md:pb-10">
-            <Outlet />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </main>
 
           {/* Bottom nav — mobile */}
           <nav className="fixed inset-x-0 bottom-0 z-10 flex overflow-x-auto border-t border-line bg-paper/95 backdrop-blur md:hidden">
-            {nav.map((item) => (
+            {visibleNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

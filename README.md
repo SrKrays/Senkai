@@ -1,4 +1,4 @@
-# Kray Sekai — Fase 0: Esqueleto Visual
+# Senkai — Fase 0: Esqueleto Visual
 
 Prototipo navegable completo de la app de gym personal (Dragon Ball edition).
 **No hay backend ni persistencia**: todos los datos vienen de `src/data/mockData.js`.

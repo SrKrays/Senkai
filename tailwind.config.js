@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Kray Sekai — Training System. Negro + rojo neón, HUD anime/gaming.
+        // Senkai — Training System. Negro + rojo neón, HUD anime/gaming.
         ink: "#F5F5F5",
         paper: "#050505",
         cream: "#000000",
@@ -20,6 +20,8 @@ export default {
           light: "#8AD4F7",
         },
         gold: "#D9A441",
+        silver: "#B9C2CC",
+        bronze: "#8A5A34",
         muted: "#A0A0A0",
         line: "#1F1F1F",
       },
@@ -27,6 +29,9 @@ export default {
         glow: "0 0 0 1px rgba(229,30,58,0.18), 0 0 22px -8px rgba(255,36,72,0.5)",
         "glow-sm": "0 0 12px rgba(229,30,58,0.18)",
         "glow-teal": "0 0 0 1px rgba(58,174,236,0.2), 0 0 22px -8px rgba(58,174,236,0.5)",
+        "glow-gold": "0 0 0 1px rgba(217,164,65,0.25), 0 0 18px -6px rgba(217,164,65,0.6)",
+        "glow-silver": "0 0 0 1px rgba(185,194,204,0.3), 0 0 14px -6px rgba(185,194,204,0.55)",
+        "glow-bronze": "0 0 0 1px rgba(138,90,52,0.3), 0 0 14px -6px rgba(138,90,52,0.55)",
       },
       fontFamily: {
         display: ["Bebas Neue", "sans-serif"],

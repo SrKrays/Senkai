@@ -1,32 +1,88 @@
-import { createContext, useContext, useMemo, useState } from "react";
-import { supplements as initialSupplements } from "../data/mockData";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { toISO } from "../utils/date";
+import { notifySupplement } from "../utils/notify";
+import { apiFetch } from "../utils/apiClient";
+import { useAuth } from "./AuthContext";
 
 const SupplementationContext = createContext(null);
 
+function fromSupplementDto(s) {
+  return { id: s.id, name: s.name, icon: s.icon, checksByDate: s.checksByDate };
+}
+
 export function SupplementationProvider({ children }) {
-  const [supplements, setSupplements] = useState(initialSupplements);
+  const { token } = useAuth();
+  const [supplements, setSupplements] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const today = useMemo(() => new Date(), []);
   const todayISO = toISO(today);
 
-  function addSupplement({ name, icon }) {
+  useEffect(() => {
+    if (!token) {
+      setSupplements([]);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    apiFetch("/api/supplements", { token })
+      .then((res) => {
+        if (cancelled) return;
+        setSupplements(res.map(fromSupplementDto));
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("No se pudo cargar Suplementación.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  async function addSupplement({ name, icon }) {
     if (!name.trim()) return;
-    setSupplements((prev) => [
-      ...prev,
-      { id: `supp-${Date.now()}`, name: name.trim(), icon: (icon || "SUP").trim() || "SUP", checksByDate: {} },
-    ]);
+    try {
+      const created = await apiFetch("/api/supplements", { method: "POST", token, body: { name, icon } });
+      setSupplements((prev) => [...prev, fromSupplementDto(created)]);
+    } catch {
+      toast.error("No se pudo crear el suplemento.");
+    }
   }
 
-  function updateSupplement(id, patch) {
-    setSupplements((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  async function updateSupplement(id, patch) {
+    const current = supplements.find((s) => s.id === id);
+    if (!current) return;
+    const merged = { ...current, ...patch };
+    try {
+      const updated = await apiFetch(`/api/supplements/${id}`, {
+        method: "PUT",
+        token,
+        body: { name: merged.name, icon: merged.icon },
+      });
+      setSupplements((prev) => prev.map((s) => (s.id === id ? fromSupplementDto(updated) : s)));
+    } catch {
+      toast.error("No se pudo editar el suplemento.");
+    }
   }
 
-  function deleteSupplement(id) {
-    setSupplements((prev) => prev.filter((s) => s.id !== id));
+  async function deleteSupplement(id) {
+    const prev = supplements;
+    setSupplements((p) => p.filter((s) => s.id !== id));
+    try {
+      await apiFetch(`/api/supplements/${id}`, { method: "DELETE", token });
+    } catch {
+      setSupplements(prev);
+      toast.error("No se pudo borrar el suplemento.");
+    }
   }
 
-  function toggleCheck(id, dateISO) {
+  async function toggleCheck(id, dateISO) {
+    const target = supplements.find((s) => s.id === id);
+    const wasChecked = !!target?.checksByDate[dateISO];
     setSupplements((prev) =>
       prev.map((s) =>
         s.id === id
@@ -34,6 +90,24 @@ export function SupplementationProvider({ children }) {
           : s
       )
     );
+    if (target && !wasChecked) notifySupplement(target.name);
+    try {
+      const updated = await apiFetch(`/api/supplements/${id}/checks`, {
+        method: "POST",
+        token,
+        body: { date: dateISO },
+      });
+      setSupplements((prev) => prev.map((s) => (s.id === id ? fromSupplementDto(updated) : s)));
+    } catch {
+      setSupplements((prev) =>
+        prev.map((s) =>
+          s.id === id
+            ? { ...s, checksByDate: { ...s.checksByDate, [dateISO]: wasChecked } }
+            : s
+        )
+      );
+      toast.error("No se pudo guardar el check.");
+    }
   }
 
   function toggleToday(id) {
@@ -64,6 +138,7 @@ export function SupplementationProvider({ children }) {
     today,
     todayISO,
     supplementationScore,
+    loading,
     addSupplement,
     updateSupplement,
     deleteSupplement,
