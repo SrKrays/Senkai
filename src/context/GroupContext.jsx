@@ -37,12 +37,12 @@ export function GroupProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  async function createGoal({ exercise, exerciseLabel, prize, targetKg, prizeImageDataUrl }) {
+  async function createGoal({ exercise, exerciseLabel, prize, targetKg, prizeImageDataUrl, rankSlug, targetTierLevel }) {
     if (!group) return;
     const updated = await apiFetch(`/api/groups/${group.id}/goal`, {
       method: "PUT",
       token,
-      body: { exercise, exerciseLabel, prize, targetKg, prizeImageDataUrl },
+      body: { exercise, exerciseLabel, prize, targetKg, prizeImageDataUrl, rankSlug, targetTierLevel },
     });
     setGroup((prev) => (prev ? { ...prev, goal: updated } : prev));
   }

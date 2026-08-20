@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import PowerReader from "./PowerReader";
 import LevelUpOverlay from "./LevelUpOverlay";
+import RankTierUpOverlay from "./RankTierUpOverlay";
 import CharacterOnboarding from "./CharacterOnboarding";
 import Logo, { LogoBadge } from "./Logo";
 import { usePoints } from "../context/PointsContext";
@@ -35,6 +36,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-paper text-ink font-body">
       <LevelUpOverlay />
+      <RankTierUpOverlay />
       <CharacterOnboarding />
       <div className="flex w-full">
         {/* Sidebar — desktop */}

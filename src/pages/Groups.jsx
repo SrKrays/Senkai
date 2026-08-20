@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Crown, Medal, Copy, Check } from "lucide-react";
@@ -235,14 +235,35 @@ export default function Groups() {
   const { habits, today } = useTracker();
   const { progressLog } = useTraining();
   const { powerLevel } = usePoints();
+  const { catalog: rankCatalog, fetchGroupRank, groupCache, groupGrowth, fetchGroupGrowth } = useRank();
 
   const [showGoalForm, setShowGoalForm] = useState(false);
+  const [goalMode, setGoalMode] = useState("kg"); // "kg" | "rank"
   const [goalExercise, setGoalExercise] = useState("benchKg");
   const [goalTarget, setGoalTarget] = useState("100");
+  const [goalRankSlug, setGoalRankSlug] = useState("");
+  const [goalTierLevel, setGoalTierLevel] = useState(6);
   const [goalPrize, setGoalPrize] = useState("");
   const [goalImage, setGoalImage] = useState(null);
   const [showSwitchPanel, setShowSwitchPanel] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+
+  // Si el reto activo es por rango (Fase 9), traemos la comparativa de ese
+  // ejercicio para poder ordenar el ranking y calcular el progreso del premio.
+  const activeRankSlug = group?.goal?.rankSlug;
+  useEffect(() => {
+    if (activeRankSlug && !groupCache[activeRankSlug]) {
+      fetchGroupRank(activeRankSlug).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRankSlug]);
+
+  // "Ritmo de mejora" del grupo (Fase 9) — quién mejoró más en su propia
+  // ventana, no quién levanta más en total.
+  useEffect(() => {
+    if (group) fetchGroupGrowth().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group?.id]);
 
   const gymHabit = habits.find((h) => h.type === "gym");
   const streak = gymHabit ? currentStreak(gymHabit.checksByDate, today) : 0;
@@ -277,11 +298,27 @@ export default function Groups() {
 
   const goal = group.goal || DEFAULT_GOAL;
   const members = group.members;
+  const isRankGoal = !!goal.rankSlug;
 
-  const ranked = [...members].sort((a, b) => b[goal.exercise] - a[goal.exercise]);
+  // Objetivo por rango (Fase 9): ordenamos por ratio (no por kg — dos
+  // personas de distinto peso no son comparables en crudo), usando la
+  // comparativa que ya trae RankContext para ese ejercicio.
+  const rankData = isRankGoal ? groupCache[goal.rankSlug] : null;
+  const rankByUser = rankData ? Object.fromEntries(rankData.entries.map((e) => [e.userId, e])) : null;
+
+  const ranked = isRankGoal
+    ? [...members].sort((a, b) => (rankByUser?.[b.userId]?.ratio ?? -1) - (rankByUser?.[a.userId]?.ratio ?? -1))
+    : [...members].sort((a, b) => b[goal.exercise] - a[goal.exercise]);
   const leader = ranked[0];
-  const prizeProgress = goal.targetKg ? Math.min(1, leader[goal.exercise] / goal.targetKg) : 0;
-  const prizeMissing = Math.max(0, goal.targetKg - leader[goal.exercise]);
+
+  const leaderTierLevel = isRankGoal ? rankByUser?.[leader.userId]?.tierLevel ?? -1 : null;
+  const prizeProgress = isRankGoal
+    ? Math.min(1, Math.max(0, (leaderTierLevel + 1) / ((goal.targetTierLevel ?? 6) + 1)))
+    : goal.targetKg
+    ? Math.min(1, leader[goal.exercise] / goal.targetKg)
+    : 0;
+  const prizeMissing = isRankGoal ? 0 : Math.max(0, goal.targetKg - leader[goal.exercise]);
+  const prizeAchieved = isRankGoal ? leaderTierLevel >= (goal.targetTierLevel ?? 6) : prizeMissing <= 0;
 
   async function handleCopyCode() {
     try {
@@ -295,15 +332,28 @@ export default function Groups() {
   }
 
   async function handleCreateGoal() {
-    const opt = EXERCISE_OPTIONS.find((o) => o.key === goalExercise) || EXERCISE_OPTIONS[0];
     try {
-      await createGoal({
-        exercise: opt.key,
-        exerciseLabel: opt.label,
-        prize: goalPrize.trim() || "Premio sorpresa",
-        targetKg: Number(goalTarget) || 0,
-        prizeImageDataUrl: goalImage,
-      });
+      if (goalMode === "rank") {
+        if (!goalRankSlug) {
+          toast.error("Elegí un ejercicio para el reto.");
+          return;
+        }
+        await createGoal({
+          rankSlug: goalRankSlug,
+          targetTierLevel: goalTierLevel,
+          prize: goalPrize.trim() || "Premio sorpresa",
+          prizeImageDataUrl: goalImage,
+        });
+      } else {
+        const opt = EXERCISE_OPTIONS.find((o) => o.key === goalExercise) || EXERCISE_OPTIONS[0];
+        await createGoal({
+          exercise: opt.key,
+          exerciseLabel: opt.label,
+          prize: goalPrize.trim() || "Premio sorpresa",
+          targetKg: Number(goalTarget) || 0,
+          prizeImageDataUrl: goalImage,
+        });
+      }
       setShowGoalForm(false);
       setGoalImage(null);
     } catch (err) {
@@ -331,6 +381,34 @@ export default function Groups() {
         <GroupSwitchPanel warnSwitch onDone={() => setShowSwitchPanel(false)} />
       )}
 
+      {/* Ritmo de mejora del grupo — no es quién levanta más, es quién MEJORÓ
+          más rápido en su propia ventana. Va arriba de todo a propósito, para
+          que aparezca sin que haya que ir a buscarlo. */}
+      {groupGrowth?.entries?.some((e) => e.scorePct !== null) && (
+        <Card className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="eyebrow mb-1 text-teal-dark">Evolution · Ritmo de mejora del grupo</p>
+            {(() => {
+              const top = groupGrowth.entries.find((e) => e.scorePct !== null);
+              return top ? (
+                <h3 className="font-display text-2xl tracking-wide">
+                  <span className="text-maroon">{top.userName}</span> es quien más mejoró
+                  {top.scorePct >= 0 ? " · +" : " · "}
+                  {top.scorePct.toFixed(1)}%
+                </h3>
+              ) : null;
+            })()}
+          </div>
+          <ul className="flex flex-wrap gap-3">
+            {groupGrowth.entries.map((e) => (
+              <li key={e.userId} className="font-mono text-xs text-muted">
+                {e.userName}: {e.scorePct === null ? "—" : `${e.scorePct >= 0 ? "+" : ""}${e.scorePct.toFixed(1)}%`}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {/* Franja de stats reales — tuyas, no del grupo */}
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         <Gauge label="Power Level" value={powerLevel} progress={powerProgress} />
@@ -342,14 +420,21 @@ export default function Groups() {
         <div>
           {/* Integrantes — ranking en barras, del mejor al peor, según el objetivo activo */}
           <div className="mb-4 flex items-baseline justify-between">
-            <p className="eyebrow">Integrantes · {goal.exerciseLabel}</p>
-            <p className="font-mono text-xs text-muted">Objetivo: {goal.targetKg}kg</p>
+            <p className="eyebrow">Power · Integrantes · {goal.exerciseLabel}</p>
+            <p className="font-mono text-xs text-muted">
+              {isRankGoal ? `Objetivo: ${goal.targetTierName}` : `Objetivo: ${goal.targetKg}kg`}
+            </p>
           </div>
           <Card className="mb-4 flex flex-col gap-5">
             {ranked.map((m, i) => {
               const { current: stage } = getVegetaStage(m.powerLevel, vegetaEvolution);
-              const value = m[goal.exercise];
-              const pct = goal.targetKg ? Math.min(1, value / goal.targetKg) : 0;
+              const memberRank = isRankGoal ? rankByUser?.[m.userId] : null;
+              const value = isRankGoal ? memberRank?.prKg ?? 0 : m[goal.exercise];
+              const pct = isRankGoal
+                ? Math.min(1, Math.max(0, ((memberRank?.tierLevel ?? -1) + 1) / ((goal.targetTierLevel ?? 6) + 1)))
+                : goal.targetKg
+                ? Math.min(1, value / goal.targetKg)
+                : 0;
               const isLeader = m.userId === leader.userId;
               const medal = RANK_MEDALS[i + 1];
               return (
@@ -391,7 +476,7 @@ export default function Groups() {
                     />
                   </div>
                   <span className="w-16 shrink-0 text-right font-mono text-sm font-semibold text-maroon">
-                    {value}kg
+                    {isRankGoal ? (memberRank?.tierName ? memberRank.tierName : "Sin marca") : `${value}kg`}
                   </span>
                   {isLeader && <Tag tone="teal">líder</Tag>}
                 </motion.div>
@@ -410,28 +495,83 @@ export default function Groups() {
             <Card className="mb-8">
               <p className="eyebrow mb-3">Nuevo objetivo grupal</p>
               <div className="flex flex-col gap-3">
-                <p className="eyebrow text-muted">Agregar ejercicio</p>
                 <div className="flex gap-2">
-                  {EXERCISE_OPTIONS.map((o) => (
-                    <button
-                      key={o.key}
-                      onClick={() => setGoalExercise(o.key)}
-                      className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest2 ${
-                        goalExercise === o.key ? "bg-maroon text-paper" : "border border-maroon/25 text-maroon"
-                      }`}
-                    >
-                      {o.label}
-                    </button>
-                  ))}
+                  <button
+                    onClick={() => setGoalMode("kg")}
+                    className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest2 ${
+                      goalMode === "kg" ? "bg-maroon text-paper" : "border border-maroon/25 text-maroon"
+                    }`}
+                  >
+                    Por kg
+                  </button>
+                  <button
+                    onClick={() => setGoalMode("rank")}
+                    className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest2 ${
+                      goalMode === "rank" ? "bg-maroon text-paper" : "border border-maroon/25 text-maroon"
+                    }`}
+                  >
+                    Por rango
+                  </button>
                 </div>
+
+                {goalMode === "kg" ? (
+                  <>
+                    <p className="eyebrow text-muted">Agregar ejercicio</p>
+                    <div className="flex gap-2">
+                      {EXERCISE_OPTIONS.map((o) => (
+                        <button
+                          key={o.key}
+                          onClick={() => setGoalExercise(o.key)}
+                          className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest2 ${
+                            goalExercise === o.key ? "bg-maroon text-paper" : "border border-maroon/25 text-maroon"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="eyebrow text-muted">Ejercicio y etapa objetivo</p>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <select
+                        value={goalRankSlug}
+                        onChange={(e) => setGoalRankSlug(e.target.value)}
+                        className="flex-1 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
+                      >
+                        <option value="">Elegí un ejercicio...</option>
+                        {rankCatalog.map((k) => (
+                          <option key={k.slug} value={k.slug}>
+                            {k.muscleGroup} · {k.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={goalTierLevel}
+                        onChange={(e) => setGoalTierLevel(Number(e.target.value))}
+                        className="border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
+                      >
+                        {vegetaEvolution.map((s) => (
+                          <option key={s.level} value={s.level}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <input
-                    type="number"
-                    value={goalTarget}
-                    onChange={(e) => setGoalTarget(e.target.value)}
-                    placeholder="Peso objetivo (kg)"
-                    className="border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
-                  />
+                  {goalMode === "kg" && (
+                    <input
+                      type="number"
+                      value={goalTarget}
+                      onChange={(e) => setGoalTarget(e.target.value)}
+                      placeholder="Peso objetivo (kg)"
+                      className="border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
+                    />
+                  )}
                   <input
                     value={goalPrize}
                     onChange={(e) => setGoalPrize(e.target.value)}
@@ -552,9 +692,11 @@ export default function Groups() {
               <div className="w-full">
                 <ProgressBar progress={prizeProgress} />
                 <p className="mt-1 text-center font-mono text-[10px] text-muted">
-                  {prizeMissing > 0
-                    ? `Faltan ${prizeMissing}kg en ${goal.exerciseLabel.toLowerCase()} para desbloquear`
-                    : "¡Desbloqueada!"}
+                  {prizeAchieved
+                    ? "¡Desbloqueada!"
+                    : isRankGoal
+                    ? `Falta llegar a ${goal.targetTierName} en ${goal.exerciseLabel.toLowerCase()} para desbloquear`
+                    : `Faltan ${prizeMissing}kg en ${goal.exerciseLabel.toLowerCase()} para desbloquear`}
                 </p>
               </div>
             </Card>

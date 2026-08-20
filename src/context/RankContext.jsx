@@ -15,22 +15,27 @@ export function RankProvider({ children }) {
   const [mine, setMine] = useState([]);
   const [loading, setLoading] = useState(true);
   const [groupCache, setGroupCache] = useState({});
+  const [growth, setGrowthState] = useState(null);
+  const [groupGrowth, setGroupGrowth] = useState(null);
 
   async function refresh() {
     if (!token) {
       setCatalog([]);
       setMine([]);
+      setGrowthState(null);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const [catalogRes, mineRes] = await Promise.all([
+      const [catalogRes, mineRes, growthRes] = await Promise.all([
         apiFetch("/api/ranks/catalog", { token }),
         apiFetch("/api/ranks/mine", { token }),
+        apiFetch("/api/ranks/growth", { token }),
       ]);
       setCatalog(catalogRes);
       setMine(mineRes);
+      setGrowthState(growthRes);
     } catch {
       // Silencioso — igual patrón que Character/Profile.
     } finally {
@@ -49,12 +54,39 @@ export function RankProvider({ children }) {
     return res;
   }
 
+  // "Ritmo de mejora" (Fase 9) — ventana de 30 días en base al mes, elegible:
+  // pasar null vuelve al default (1° del mes actual), pasar una fecha "yyyy-MM-dd"
+  // la arranca desde ahí hasta hoy (ej: te anotás a mitad de mes).
+  async function setGrowthWindow(startDate) {
+    const res = await apiFetch("/api/ranks/growth/window", { method: "PUT", token, body: { start: startDate } });
+    setGrowthState(res);
+    return res;
+  }
+
+  async function fetchGroupGrowth() {
+    const res = await apiFetch("/api/ranks/growth/group", { token });
+    setGroupGrowth(res);
+    return res;
+  }
+
   const byMuscle = mine.reduce((acc, r) => {
     (acc[r.muscleGroup] ||= []).push(r);
     return acc;
   }, {});
 
-  const value = { catalog, mine, byMuscle, loading, groupCache, fetchGroupRank, refresh };
+  const value = {
+    catalog,
+    mine,
+    byMuscle,
+    loading,
+    groupCache,
+    fetchGroupRank,
+    growth,
+    setGrowthWindow,
+    groupGrowth,
+    fetchGroupGrowth,
+    refresh,
+  };
 
   return <RankContext.Provider value={value}>{children}</RankContext.Provider>;
 }

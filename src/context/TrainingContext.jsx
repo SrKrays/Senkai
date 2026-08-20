@@ -65,11 +65,26 @@ function notifyGroupGoalProgress(gp) {
   }
 }
 
+// Si esta marca te subió de etapa en el rango por ejercicio (Fase 9,
+// Mecánica 1), el backend lo manda junto con la marca — festejamos igual
+// que un PR, con toast + confetti.
+function notifyRankTierUp(tierUp) {
+  if (!tierUp) return;
+  toast.success(`¡${tierUp.exerciseName} subió a ${tierUp.tierName}! 🔥`);
+  fireConfetti();
+}
+
 export function TrainingProvider({ children }) {
   const { token } = useAuth();
   const [rawExercises, setRawExercises] = useState([]);
   const [progressLog, setProgressLog] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Tier-up pendiente (Fase 9 v2, Capa 9) — el toast+confetti de siempre se
+  // sigue disparando en notifyRankTierUp, esto es la data para el overlay
+  // más rico (RankTierUpOverlay, montado en Layout). Vive acá y no en
+  // RankContext porque TrainingProvider está por FUERA de RankProvider en
+  // App.jsx — el dato ya viaja en la respuesta de addProgress igual.
+  const [pendingTierUp, setPendingTierUp] = useState(null);
 
   useEffect(() => {
     if (!token) {
@@ -158,8 +173,15 @@ export function TrainingProvider({ children }) {
     const numWeight = Number(weight) || 0;
     const numReps = Number(reps) || 0;
     if (!exerciseId || (numWeight <= 0 && numReps <= 0)) return;
+    // OJO: NO cortar acá si no se encuentra en rawExercises. Cuando el
+    // ejercicio se acaba de crear en el mismo handler que llama a
+    // addProgress (ej: Routines.jsx creando+marcando de una), este closure
+    // todavía tiene el rawExercises VIEJO (de antes de que existiera el
+    // ejercicio nuevo) — cortar acá hacía que la marca ni se intentara
+    // guardar. Los datos que hacen falta para el toast de PR quedan con
+    // fallback genérico si el ejercicio local no está — el guardado real
+    // (la llamada a la API) no depende de tenerlo en memoria.
     const exercise = rawExercises.find((e) => e.id === exerciseId);
-    if (!exercise) return;
 
     // Detectamos PR ANTES de insertar la marca, contra el máximo previo real
     // (misma regla que utils/points.js) — así el toast/confetti sale
@@ -185,16 +207,19 @@ export function TrainingProvider({ children }) {
       setProgressLog((prev) => [...prev, fromMarkDto(created)]);
 
       if (isWeightPR || isRepsPR) {
+        const unit = exercise?.unit ?? "kg";
         const detail = isWeightPR && isRepsPR
-          ? `${numWeight}${exercise.unit} × ${numReps} reps`
+          ? `${numWeight}${unit} × ${numReps} reps`
           : isWeightPR
-          ? `${numWeight}${exercise.unit}`
+          ? `${numWeight}${unit}`
           : `${numReps} reps`;
-        notifyPR(exercise.name, detail);
+        notifyPR(exercise?.name ?? "Ejercicio", detail);
         fireConfetti();
       }
 
       notifyGroupGoalProgress(created.groupProgress);
+      notifyRankTierUp(created.rankTierUp);
+      if (created.rankTierUp) setPendingTierUp(created.rankTierUp);
     } catch {
       toast.error("No se pudo guardar la marca.");
     }
@@ -263,6 +288,8 @@ export function TrainingProvider({ children }) {
     benchKg,
     powerScale,
     trainingScore,
+    pendingTierUp,
+    clearTierUp: () => setPendingTierUp(null),
     ...power,
   };
 

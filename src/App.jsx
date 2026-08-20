@@ -10,6 +10,9 @@ import { CharacterProvider } from "./context/CharacterContext";
 import { ProfileProvider } from "./context/ProfileContext";
 import { RankProvider } from "./context/RankContext";
 import { GroupProvider } from "./context/GroupContext";
+import { TrainingGoalProvider } from "./context/TrainingGoalContext";
+import { RoutineProvider } from "./context/RoutineContext";
+import { WorkoutSessionProvider } from "./context/WorkoutSessionContext";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
@@ -18,6 +21,7 @@ import Tracker from "./pages/Tracker";
 import Character from "./pages/Character";
 import Training from "./pages/Training";
 import Routines from "./pages/Routines";
+import WorkoutSession from "./pages/WorkoutSession";
 import Nutrition from "./pages/Nutrition";
 import Supplementation from "./pages/Supplementation";
 import Groups from "./pages/Groups";
@@ -36,6 +40,9 @@ export default function App() {
                   <ProfileProvider>
                     <RankProvider>
                     <GroupProvider>
+                    <TrainingGoalProvider>
+                    <RoutineProvider>
+                    <WorkoutSessionProvider>
                       <HashRouter>
                       <Routes>
                         <Route path="/login" element={<Login />} />
@@ -51,6 +58,7 @@ export default function App() {
                           <Route path="/personaje" element={<Character />} />
                           <Route path="/entrenamiento" element={<Training />} />
                           <Route path="/rutinas" element={<Routines />} />
+                          <Route path="/rutinas/sesion/:id" element={<WorkoutSession />} />
                           <Route path="/nutricion" element={<Nutrition />} />
                           <Route path="/suplementacion" element={<Supplementation />} />
                           <Route path="/grupos" element={<Groups />} />
@@ -60,6 +68,7 @@ export default function App() {
                         </Route>
                       </Routes>
                     </HashRouter>
+                    </WorkoutSessionProvider>
                     <Toaster
                       theme="dark"
                       position="bottom-right"
@@ -73,7 +82,9 @@ export default function App() {
                         },
                       }}
                     />
-                  </GroupProvider>
+                  </RoutineProvider>
+                    </TrainingGoalProvider>
+                    </GroupProvider>
                     </RankProvider>
                   </ProfileProvider>
                 </CharacterProvider>

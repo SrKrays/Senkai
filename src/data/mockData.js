@@ -45,47 +45,6 @@ export const progressLog = [
   { id: 4, date: "2026-08-02", exerciseId: "bench", exercise: "Press banca", muscle: "Pecho", weight: 92, reps: 4, spotted: true },
 ];
 
-// `days` son índices de semana lunes-first (0=Lunes ... 6=Domingo), para que
-// calcen directo con getWeekDates() del Tracker/calendario.
-export const routines = [
-  {
-    id: "push",
-    name: "Día de Empuje",
-    focus: "Pecho / Hombro / Tríceps",
-    days: [0, 3],
-    exercises: [
-      { id: "push-1", name: "Press banca", sets: 4, reps: 8 },
-      { id: "push-2", name: "Press militar", sets: 3, reps: 10 },
-      { id: "push-3", name: "Fondos", sets: 3, reps: 12 },
-      { id: "push-4", name: "Elevaciones laterales", sets: 3, reps: 15 },
-    ],
-  },
-  {
-    id: "pull",
-    name: "Día de Tracción",
-    focus: "Espalda / Bíceps",
-    days: [1, 4],
-    exercises: [
-      { id: "pull-1", name: "Peso muerto", sets: 4, reps: 6 },
-      { id: "pull-2", name: "Remo con barra", sets: 3, reps: 10 },
-      { id: "pull-3", name: "Dominadas", sets: 3, reps: 8 },
-      { id: "pull-4", name: "Curl bíceps", sets: 3, reps: 12 },
-    ],
-  },
-  {
-    id: "legs",
-    name: "Día de Pierna",
-    focus: "Cuádriceps / Isquios / Glúteo",
-    days: [2, 5],
-    exercises: [
-      { id: "legs-1", name: "Sentadilla", sets: 4, reps: 8 },
-      { id: "legs-2", name: "Prensa", sets: 3, reps: 12 },
-      { id: "legs-3", name: "Curl femoral", sets: 3, reps: 12 },
-      { id: "legs-4", name: "Hip thrust", sets: 3, reps: 10 },
-    ],
-  },
-];
-
 export const nutrition = {
   goal: "Volumen limpio",
   calorieTarget: 3100,
