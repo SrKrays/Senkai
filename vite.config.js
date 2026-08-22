@@ -20,17 +20,23 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
+        // Solo 2 archivos reales (los 3 que se guardaron en public/pwa/, sin
+        // contar apple-touch-icon que lo lee index.html aparte, no el
+        // manifest). No hay un icon-192 aparte — el mismo 512 sirve para las
+        // dos entradas, el navegador lo achica solo.
         icons: [
-          { src: '/pwa/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/pwa/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: '/pwa/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
-        // Precachea el build (JS/CSS) + todo el arte de personajes que ya
-        // vive en public/ (Vegeta/Goku), así las pantallas cargan de una
-        // aunque la conexión esté floja.
-        globPatterns: ['**/*.{js,css,html,svg,png,jpg,jpeg,webp,woff2}'],
+        // Solo el shell (JS/CSS/HTML) se precachea al instalar — el arte de
+        // personajes (characters/nutrition/routines/groups) pesa varios MB
+        // en total (algunos PNG superan los 2MB cada uno) y bajarlo todo de
+        // una en la instalación sería lento y gastaría datos móviles de
+        // arranque. Esas imágenes se cachean solas, bajo demanda, con la
+        // regla de abajo la primera vez que la pantalla que las usa se abre.
+        globPatterns: ['**/*.{js,css,html}'],
         runtimeCaching: [
           {
             // Solo GETs (default de Workbox) — nunca cachea POST/PUT/DELETE,
@@ -45,6 +51,18 @@ export default defineConfig({
               networkTimeoutSeconds: 6,
               cacheableResponse: { statuses: [0, 200] },
               expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 }, // 1 día, solo para offline de emergencia
+            },
+          },
+          {
+            // Arte estático (Vegeta/Goku, íconos) — no cambia una vez
+            // publicado, así que una vez visto queda servido desde el
+            // dispositivo, más rápido y sin gastar datos de nuevo.
+            urlPattern: ({ request }) => request.destination === 'image',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'senkai-images-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 días
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import PowerReader from "./PowerReader";
@@ -27,6 +28,15 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const visibleNav = nav.filter((item) => !item.adminOnly || user?.role === "Admin");
+  const bottomNavRef = useRef(null);
+
+  // Con 10 secciones, el nav de abajo (mobile) scrollea horizontal — sin esto
+  // el ítem activo puede quedar fuera de la parte visible al navegar directo
+  // (ej: por un link interno), obligando a buscarlo a mano.
+  useEffect(() => {
+    const active = bottomNavRef.current?.querySelector('[aria-current="page"]');
+    active?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [location.pathname]);
 
   function handleLogout() {
     logout();
@@ -88,7 +98,10 @@ export default function Layout() {
         {/* Main column */}
         <div className="flex min-h-screen flex-1 flex-col">
           {/* Top bar */}
-          <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line bg-paper/95 px-5 py-3 backdrop-blur md:px-8">
+          {/* pt con env(safe-area-inset-top): en la PWA instalada en iPhone
+              (modo standalone, sin la barra de Safari) el notch/Dynamic
+              Island se come el contenido si no se reserva ese espacio. */}
+          <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line bg-paper/95 px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur md:px-8">
             <div className="flex items-center gap-2 md:hidden">
               <LogoBadge badgeSize={28} />
               <span className="font-display text-xl tracking-widest2 text-maroon-light">SENKAI</span>
@@ -99,7 +112,7 @@ export default function Layout() {
             <PowerReader value={powerLevel} size="sm" />
           </header>
 
-          <main className="flex-1 px-5 py-8 pb-24 md:px-10 md:py-10 md:pb-10">
+          <main className="flex-1 px-5 py-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:px-10 md:py-10 md:pb-10">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -113,8 +126,13 @@ export default function Layout() {
             </AnimatePresence>
           </main>
 
-          {/* Bottom nav — mobile */}
-          <nav className="fixed inset-x-0 bottom-0 z-10 flex overflow-x-auto border-t border-line bg-paper/95 backdrop-blur md:hidden">
+          {/* Bottom nav — mobile. pb con env(safe-area-inset-bottom): en la PWA
+              instalada en iPhone, esa franja de abajo es el home indicator —
+              sin este padding el nav queda pegado y a veces tapado por él. */}
+          <nav
+            ref={bottomNavRef}
+            className="fixed inset-x-0 bottom-0 z-10 flex overflow-x-auto border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+          >
             {visibleNav.map((item) => (
               <NavLink
                 key={item.to}
