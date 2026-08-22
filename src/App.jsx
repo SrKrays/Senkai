@@ -5,6 +5,7 @@ import { TrainingProvider } from "./context/TrainingContext";
 import { TrackerProvider } from "./context/TrackerContext";
 import { NutritionProvider } from "./context/NutritionContext";
 import { SupplementationProvider } from "./context/SupplementationContext";
+import { SupplementPlanProvider } from "./context/SupplementPlanContext";
 import { PointsProvider } from "./context/PointsContext";
 import { CharacterProvider } from "./context/CharacterContext";
 import { ProfileProvider } from "./context/ProfileContext";
@@ -35,6 +36,7 @@ export default function App() {
         <TrainingProvider>
           <NutritionProvider>
             <SupplementationProvider>
+            <SupplementPlanProvider>
               <PointsProvider>
                 <CharacterProvider>
                   <ProfileProvider>
@@ -89,6 +91,7 @@ export default function App() {
                   </ProfileProvider>
                 </CharacterProvider>
               </PointsProvider>
+            </SupplementPlanProvider>
             </SupplementationProvider>
           </NutritionProvider>
         </TrainingProvider>

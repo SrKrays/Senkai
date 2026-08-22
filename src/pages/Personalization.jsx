@@ -14,15 +14,17 @@ function todayISO() {
 // por día, se pisa si ya cargaste hoy) porque es lo que necesitan el rango
 // por ejercicio y la evolución para calcularse bien en el tiempo.
 function ProfileCard() {
-  const { heightCm, bedTime, latestWeightKg, loading, updateProfile, logWeight } = useProfile();
+  const { heightCm, bedTime, proteinTarget, latestWeightKg, loading, updateProfile, logWeight } = useProfile();
   const [draftHeight, setDraftHeight] = useState("");
   const [draftBedTime, setDraftBedTime] = useState("");
+  const [draftProteinTarget, setDraftProteinTarget] = useState("");
   const [draftWeight, setDraftWeight] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingWeight, setSavingWeight] = useState(false);
 
   const height = draftHeight !== "" ? draftHeight : heightCm ?? "";
   const bed = draftBedTime !== "" ? draftBedTime : bedTime ?? "";
+  const proteinGoal = draftProteinTarget !== "" ? draftProteinTarget : proteinTarget ?? "";
 
   async function handleSaveProfile() {
     setSavingProfile(true);
@@ -30,9 +32,11 @@ function ProfileCard() {
       await updateProfile({
         heightCm: height === "" ? null : Number(height),
         bedTime: bed === "" ? null : bed,
+        proteinTarget: proteinGoal === "" ? null : Number(proteinGoal),
       });
       setDraftHeight("");
       setDraftBedTime("");
+      setDraftProteinTarget("");
       toast.success("Perfil guardado.");
     } catch (err) {
       toast.error(err?.message || "No se pudo guardar el perfil.");
@@ -86,6 +90,16 @@ function ProfileCard() {
                 type="time"
                 value={bed}
                 onChange={(e) => setDraftBedTime(e.target.value)}
+                className="w-32 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="font-mono text-[10px] uppercase tracking-widest2 text-muted">Objetivo de proteína (g/día)</label>
+              <input
+                type="number"
+                value={proteinGoal}
+                onChange={(e) => setDraftProteinTarget(e.target.value)}
+                placeholder="Ej: 160"
                 className="w-32 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
               />
             </div>

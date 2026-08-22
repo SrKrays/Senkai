@@ -16,7 +16,7 @@ function getGokuStage(mealsLoggedToday) {
   return gokuEating[idx];
 }
 
-const EMPTY_DRAFT = { description: "", calories: "", notes: "", imageUrl: null };
+const EMPTY_DRAFT = { description: "", calories: "", proteinGrams: "", notes: "", imageUrl: null };
 
 // Card de una división de comida — es su propio componente (no un bloque
 // inline dentro del .map()) porque necesita su propio estado de búsqueda
@@ -80,6 +80,7 @@ function MealSlotCard({
       onSetDraft(slot.id, {
         description: detail.description || food.description,
         calories: detail.calories != null ? String(Math.round(detail.calories)) : draft.calories,
+        proteinGrams: detail.proteinG != null ? String(detail.proteinG) : draft.proteinGrams,
       });
       setSelectedFood(detail);
     } catch {
@@ -137,7 +138,10 @@ function MealSlotCard({
             <img src={entry.imageUrl} alt={entry.description} className="h-32 w-full border border-maroon/15 object-cover" />
           )}
           <p className="text-sm">{entry.description || "—"}</p>
-          <Tag>{entry.calories} kcal</Tag>
+          <div className="flex gap-1.5">
+            <Tag>{entry.calories} kcal</Tag>
+            {entry.proteinGrams != null && <Tag>{entry.proteinGrams}g prot.</Tag>}
+          </div>
           {entry.notes && <p className="text-xs text-muted">{entry.notes}</p>}
           <div className="flex gap-3 border-t border-maroon/10 pt-2">
             <button
@@ -206,6 +210,13 @@ function MealSlotCard({
               value={draft.calories}
               onChange={(e) => onSetDraft(slot.id, { calories: e.target.value })}
               placeholder="Calorías"
+              className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+            />
+            <input
+              type="number"
+              value={draft.proteinGrams}
+              onChange={(e) => onSetDraft(slot.id, { proteinGrams: e.target.value })}
+              placeholder="Proteína (g)"
               className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
             />
           </div>
@@ -306,6 +317,7 @@ export default function Nutrition() {
     logMeal(todayISO, slotId, {
       description: d.description.trim(),
       calories: Number(d.calories) || 0,
+      proteinGrams: d.proteinGrams,
       notes: d.notes.trim(),
       imageUrl: d.imageUrl,
     });
@@ -318,6 +330,7 @@ export default function Nutrition() {
     setDraft(slotId, {
       description: entry.description,
       calories: String(entry.calories || ""),
+      proteinGrams: entry.proteinGrams != null ? String(entry.proteinGrams) : "",
       notes: entry.notes || "",
       imageUrl: entry.imageUrl || null,
     });
@@ -329,6 +342,7 @@ export default function Nutrition() {
     updateMealLog(todayISO, slotId, {
       description: d.description.trim(),
       calories: Number(d.calories) || 0,
+      proteinGrams: d.proteinGrams,
       notes: d.notes.trim(),
       imageUrl: d.imageUrl,
     });

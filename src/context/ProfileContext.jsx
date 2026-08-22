@@ -13,6 +13,7 @@ export function ProfileProvider({ children }) {
   const { token } = useAuth();
   const [heightCm, setHeightCm] = useState(null);
   const [bedTime, setBedTime] = useState(null);
+  const [proteinTarget, setProteinTarget] = useState(null);
   const [weightLog, setWeightLog] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,6 +21,7 @@ export function ProfileProvider({ children }) {
     if (!token) {
       setHeightCm(null);
       setBedTime(null);
+      setProteinTarget(null);
       setWeightLog([]);
       setLoading(false);
       return;
@@ -39,6 +41,7 @@ export function ProfileProvider({ children }) {
   function applyDto(res) {
     setHeightCm(res.heightCm);
     setBedTime(res.bedTime);
+    setProteinTarget(res.proteinTarget);
     setWeightLog(res.weightLog);
   }
 
@@ -47,11 +50,11 @@ export function ProfileProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  async function updateProfile({ heightCm: h, bedTime: b }) {
+  async function updateProfile({ heightCm: h, bedTime: b, proteinTarget: p }) {
     const res = await apiFetch("/api/profile/mine", {
       method: "PUT",
       token,
-      body: { heightCm: h, bedTime: b },
+      body: { heightCm: h, bedTime: b, proteinTarget: p },
     });
     applyDto(res);
   }
@@ -75,6 +78,7 @@ export function ProfileProvider({ children }) {
   const value = {
     heightCm,
     bedTime,
+    proteinTarget,
     weightLog,
     latestWeightKg,
     loading,

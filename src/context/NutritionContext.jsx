@@ -17,6 +17,7 @@ function toNestedLogs(flatLogs) {
     (byDate[l.date] ||= {})[l.slotId] = {
       description: l.description,
       calories: l.calories,
+      proteinGrams: l.proteinGrams ?? null,
       notes: l.notes || "",
       imageUrl: l.imageUrl || null,
     };
@@ -111,6 +112,7 @@ export function NutritionProvider({ children }) {
           date: dateISO,
           description: entry.description,
           calories: Number(entry.calories) || 0,
+          proteinGrams: entry.proteinGrams === "" || entry.proteinGrams == null ? null : Number(entry.proteinGrams),
           notes: entry.notes,
           imageUrl: entry.imageUrl,
         },
@@ -122,6 +124,7 @@ export function NutritionProvider({ children }) {
           [slotId]: {
             description: saved.description,
             calories: saved.calories,
+            proteinGrams: saved.proteinGrams ?? null,
             notes: saved.notes || "",
             imageUrl: saved.imageUrl || null,
           },
