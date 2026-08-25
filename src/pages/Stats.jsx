@@ -32,6 +32,47 @@ function momentumFor(r) {
   return { label: "Retroceso", tone: "default", detail: "Bajó el ratio en la ventana." };
 }
 
+// Grilla de objetivos reutilizada tanto para la vista mezclada (pocos
+// objetivos, no hace falta separar) como para las dos columnas
+// Individuales/Grupales cuando hay de los dos tipos juntos.
+function ObjectiveGrid({ goals, onDelete }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {goals.map((o) => (
+        <Card key={o.id} className="flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold">{o.title}</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest2 text-muted">
+                {o.isClosed ? "finalizado" : o.deadline ? `vence ${o.deadline}` : "sin fecha"}
+              </p>
+            </div>
+            <span className="flex shrink-0 items-center gap-1.5">
+              <Tag tone={o.isGroup ? "teal" : "maroon"}>{o.isGroup ? "grupal" : "individual"}</Tag>
+              <button
+                onClick={() => onDelete(o.id)}
+                aria-label={`Borrar ${o.title}`}
+                title="Borrar"
+                className="text-muted hover:text-maroon"
+              >
+                ✕
+              </button>
+            </span>
+          </div>
+          <ProgressBar progress={o.progress} tone={o.isGroup ? "teal" : "maroon"} />
+          <p className="font-mono text-[10px] text-muted">
+            {o.metric === "training_days"
+              ? `${o.daysCompleted ?? 0}/${o.targetDays} días entrenados`
+              : o.currentKg != null
+              ? `${o.currentKg}kg / ${o.targetKg}kg`
+              : `Sin marca todavía / meta ${o.targetKg}kg`}
+          </p>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 function marksForExercise(progressLog, exerciseId) {
   return progressLog.filter((p) => p.exerciseId === exerciseId).sort((a, b) => a.date.localeCompare(b.date));
 }
@@ -229,6 +270,16 @@ export default function Stats() {
   const bestExercises = rankedExercises.filter((e) => e.growthPct !== null).slice(0, 5);
   const worstExercises = [...rankedExercises].reverse().filter((e) => e.growthPct !== null).slice(0, 3);
 
+  // Objetivos ordenados para que se entiendan de un vistazo cuando hay
+  // varios juntos: primero por tipo (individuales aparte de los grupales,
+  // que corren con otra lógica y mezclados confunden), y dentro de cada
+  // grupo los más cerca de completarse arriba — son los que más vale la
+  // pena mirar hoy.
+  const sortedGoals = [...trainingGoals].sort((a, b) => (b.progress ?? 0) - (a.progress ?? 0));
+  const individualGoals = sortedGoals.filter((o) => !o.isGroup);
+  const groupGoals = sortedGoals.filter((o) => o.isGroup);
+  const showGoalGroups = individualGoals.length > 0 && groupGoals.length > 0;
+
   const pendingHabits = habits.filter((h) => !h.checksByDate[toISO(today)]);
   const pendingNotes = notes.filter((n) => !n.done);
 
@@ -384,40 +435,23 @@ export default function Stats() {
             <p className="font-display text-2xl tracking-wide text-maroon">Sin objetivos cargados</p>
             <p className="max-w-sm text-sm text-muted">Agregá el primero con "+ Nuevo objetivo".</p>
           </Card>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {trainingGoals.map((o) => (
-              <Card key={o.id} className="flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold">{o.title}</p>
-                    <p className="font-mono text-[10px] uppercase tracking-widest2 text-muted">
-                      {o.isClosed ? "finalizado" : o.deadline ? `vence ${o.deadline}` : "sin fecha"}
-                    </p>
-                  </div>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    <Tag tone={o.isGroup ? "teal" : "maroon"}>{o.isGroup ? "grupal" : "individual"}</Tag>
-                    <button
-                      onClick={() => deleteObjective(o.id)}
-                      aria-label={`Borrar ${o.title}`}
-                      title="Borrar"
-                      className="text-muted hover:text-maroon"
-                    >
-                      ✕
-                    </button>
-                  </span>
-                </div>
-                <ProgressBar progress={o.progress} tone={o.isGroup ? "teal" : "maroon"} />
-                <p className="font-mono text-[10px] text-muted">
-                  {o.metric === "training_days"
-                    ? `${o.daysCompleted ?? 0}/${o.targetDays} días entrenados`
-                    : o.currentKg != null
-                    ? `${o.currentKg}kg / ${o.targetKg}kg`
-                    : `Sin marca todavía / meta ${o.targetKg}kg`}
-                </p>
-              </Card>
-            ))}
+        ) : showGoalGroups ? (
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-widest2 text-maroon">
+                Individuales · {individualGoals.length}
+              </p>
+              <ObjectiveGrid goals={individualGoals} onDelete={deleteObjective} />
+            </div>
+            <div>
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-widest2 text-teal-dark">
+                Grupales · {groupGoals.length}
+              </p>
+              <ObjectiveGrid goals={groupGoals} onDelete={deleteObjective} />
+            </div>
           </div>
+        ) : (
+          <ObjectiveGrid goals={sortedGoals} onDelete={deleteObjective} />
         )}
       </div>
 

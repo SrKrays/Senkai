@@ -510,28 +510,42 @@ export default function Routines() {
       </div>
 
       {/* Calendario semanal — qué rutina toca cada día, según los días
-          reales configurados en cada rutina (ya no un mock aparte). */}
+          reales configurados en cada rutina (ya no un mock aparte). En
+          mobile forzar 7 columnas en una card angosta apretaba tanto que los
+          nombres de rutina se cortaban ("Che Day", "Esp..."). Ahora es una
+          tira horizontal con scroll propio (no afecta el resto de la
+          página) y celdas bien más grandes — en pantallas con lugar de
+          sobra (sm+) vuelve a ser una grilla fija de 7, ahí sí entra todo
+          junto sin apretar. */}
       <Card className="mb-8">
         <div className="mb-4 flex items-center justify-between">
           <p className="eyebrow text-maroon">Calendario de la semana</p>
           <p className="font-mono text-xs text-muted">Entrenás {weeklyDaysUsed} día(s) por semana</p>
         </div>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 snap-x snap-mandatory sm:mx-0 sm:grid sm:grid-cols-7 sm:overflow-visible sm:px-0 sm:pb-0">
           {weekDates.map((d, i) => {
             const dayRoutines = routines.filter((r) => r.daysOfWeek.includes(i));
             const isToday = isSameDay(d, today);
             return (
-              <div key={toISO(d)} className={`border p-2 text-center ${isToday ? "border-maroon bg-maroon/5" : "border-maroon/15"}`}>
+              <div
+                key={toISO(d)}
+                className={`w-24 shrink-0 snap-start border p-3 text-center sm:w-auto ${
+                  isToday ? "border-maroon bg-maroon/5" : "border-maroon/15"
+                }`}
+              >
                 <p className="font-mono text-[10px] uppercase tracking-widest2 text-muted">
                   {isToday ? "Hoy" : DIAS_CORTOS[i]}
                 </p>
                 <p className="mb-2 font-mono text-xs text-muted">{d.getDate()}</p>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   {dayRoutines.length === 0 ? (
                     <span className="font-mono text-[10px] text-muted/60">Descanso</span>
                   ) : (
                     dayRoutines.map((r) => (
-                      <span key={r.id} className="bg-maroon px-1.5 py-1 font-mono text-[9px] leading-tight text-paper">
+                      <span
+                        key={r.id}
+                        className="break-words bg-maroon px-1.5 py-1.5 font-mono text-[10px] leading-tight text-paper"
+                      >
                         {r.name}
                       </span>
                     ))
@@ -541,6 +555,9 @@ export default function Routines() {
             );
           })}
         </div>
+        <p className="mt-2 text-center font-mono text-[9px] uppercase tracking-widest2 text-muted/60 sm:hidden">
+          ← deslizá para ver toda la semana →
+        </p>
       </Card>
 
       {/* Rutinas — clickeables, se expanden para editar días y ejercicios */}

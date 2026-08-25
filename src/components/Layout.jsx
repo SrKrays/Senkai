@@ -14,17 +14,20 @@ import { useAuth } from "../context/AuthContext";
 // usuario nuevo no necesita ver las 10 de una para poder usar la app. El
 // sidebar de escritorio sigue mostrando las 10 igual, ahí no hace falta
 // esconder nada (hay lugar de sobra).
+// `icon` solo se usa en el nav de abajo en mobile — ahí no entra un label
+// largo con claridad en un espacio chico, un ícono + palabra corta se lee
+// más rápido sin tener que tocar para enterarte qué es cada sección.
 const nav = [
-  { to: "/", label: "Dashboard", num: "00", primary: true },
-  { to: "/tracker", label: "Tracker de Hábitos", num: "01" },
-  { to: "/personaje", label: "Personaje", num: "02" },
-  { to: "/entrenamiento", label: "Entrenamiento", num: "03", primary: true },
-  { to: "/rutinas", label: "Rutinas", num: "04", primary: true },
-  { to: "/nutricion", label: "Nutrición", num: "05", primary: true },
-  { to: "/suplementacion", label: "Suplementación", num: "06", primary: true },
-  { to: "/grupos", label: "Grupos", num: "07" },
-  { to: "/estadisticas", label: "Objetivos y Estadísticas", num: "08" },
-  { to: "/personalizacion", label: "User", num: "09" },
+  { to: "/", label: "Dashboard", short: "Inicio", icon: "🏠", num: "00", primary: true },
+  { to: "/tracker", label: "Tracker de Hábitos", short: "Hábitos", icon: "✅", num: "01" },
+  { to: "/personaje", label: "Personaje", short: "Personaje", icon: "🧬", num: "02" },
+  { to: "/entrenamiento", label: "Entrenamiento", short: "Entreno", icon: "🏋️", num: "03", primary: true },
+  { to: "/rutinas", label: "Rutinas", short: "Rutinas", icon: "🗓️", num: "04", primary: true },
+  { to: "/nutricion", label: "Nutrición", short: "Nutrición", icon: "🍽️", num: "05", primary: true },
+  { to: "/suplementacion", label: "Suplementación", short: "Suplem.", icon: "💊", num: "06", primary: true },
+  { to: "/grupos", label: "Grupos", short: "Grupos", icon: "👥", num: "07" },
+  { to: "/estadisticas", label: "Objetivos y Estadísticas", short: "Objetivos", icon: "📊", num: "08" },
+  { to: "/personalizacion", label: "User", short: "Perfil", icon: "⚙️", num: "09" },
 ];
 
 export default function Layout() {
@@ -106,10 +109,10 @@ export default function Layout() {
           {/* pt con env(safe-area-inset-top): en la PWA instalada en iPhone
               (modo standalone, sin la barra de Safari) el notch/Dynamic
               Island se come el contenido si no se reserva ese espacio. */}
-          <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line bg-paper/95 px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur md:px-8">
-            <div className="flex items-center gap-2 md:hidden">
-              <LogoBadge badgeSize={28} />
-              <span className="font-display text-xl tracking-widest2 text-maroon-light">SENKAI</span>
+          <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-line bg-paper/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur md:gap-4 md:px-8">
+            <div className="flex shrink-0 items-center gap-1.5 md:hidden">
+              <LogoBadge badgeSize={26} />
+              <span className="font-display text-lg tracking-widest2 text-maroon-light">SENKAI</span>
             </div>
             <p className="hidden text-sm text-muted md:block">
               Hola, <span className="font-semibold text-maroon">{user?.name}</span> — a subir de nivel hoy también.
@@ -131,7 +134,11 @@ export default function Layout() {
             </AnimatePresence>
           </main>
 
-          {/* Bottom nav — mobile: 5 secciones de uso diario + "Más". pb con
+          {/* Bottom nav — mobile: 5 secciones de uso diario + "Más". Íconos
+              grandes + palabra corta en vez de "01/02/03" en mono chiquito —
+              eso obligaba a tocar para enterarte qué era cada botón. Tap
+              target de altura completa (todo el <NavLink> es clickeable, no
+              solo el ícono) para que entrar a la primera sea fácil. pb con
               env(safe-area-inset-bottom): en la PWA instalada en iPhone, esa
               franja de abajo es el home indicator — sin este padding el nav
               queda pegado y a veces tapado por él. */}
@@ -142,25 +149,25 @@ export default function Layout() {
                 to={item.to}
                 end={item.to === "/"}
                 className={({ isActive }) =>
-                  `flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium ${
-                    isActive ? "text-teal" : "text-ink/50"
+                  `flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-[11px] font-medium transition-colors duration-150 ${
+                    isActive ? "text-teal" : "text-ink/50 active:text-ink/80"
                   }`
                 }
               >
-                <span className="font-mono text-[9px]">{item.num}</span>
-                <span className="whitespace-nowrap">{item.label}</span>
+                <span className="text-xl leading-none">{item.icon}</span>
+                <span className="whitespace-nowrap">{item.short}</span>
               </NavLink>
             ))}
             <button
               onClick={() => setMoreOpen(true)}
               aria-label="Más secciones"
-              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium ${
+              className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-[11px] font-medium transition-colors duration-150 ${
                 secondaryNav.some((item) => location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to)))
                   ? "text-teal"
-                  : "text-ink/50"
+                  : "text-ink/50 active:text-ink/80"
               }`}
             >
-              <span className="font-mono text-[9px]">···</span>
+              <span className="text-xl leading-none">☰</span>
               <span className="whitespace-nowrap">Más</span>
             </button>
           </nav>
@@ -205,7 +212,7 @@ export default function Layout() {
                           }`
                         }
                       >
-                        <span className="font-mono text-[10px] opacity-60">{item.num}</span>
+                        <span className="text-lg leading-none">{item.icon}</span>
                         <span className="font-medium">{item.label}</span>
                       </NavLink>
                     ))}
@@ -213,7 +220,7 @@ export default function Layout() {
                       onClick={handleLogout}
                       className="mt-1 flex w-full items-center gap-3 rounded-sm border border-transparent px-3 py-3 text-left text-sm text-ink/70 hover:bg-maroon/5"
                     >
-                      <span className="font-mono text-[10px] opacity-60">⏻</span>
+                      <span className="text-lg leading-none">⏻</span>
                       <span className="font-medium">Cerrar sesión</span>
                     </button>
                   </div>

@@ -33,6 +33,21 @@
        evita que uno solo rompa la lectura de toda la pantalla. */
     overflow-x: hidden;
   }
+  /* Segunda red de seguridad, esta ataca la CAUSA en vez del síntoma: por
+     default, un hijo de grid/flex no se achica más allá del ancho de su
+     contenido (min-width: auto) — así que un número largo, un label sin
+     espacios, o un ProgressBar dentro de una columna angosta puede forzar
+     esa columna (y de rebote toda la fila/página) más ancha que la pantalla.
+     Con overflow-x:hidden de arriba eso se traduce en texto "cortado" en vez
+     de un scroll — que es justo lo que se veía en Grupos/Nutrición/Objetivos.
+     min-width: 0 saca ese piso artificial: el contenido pasa a hacer wrap
+     normal dentro del espacio real que tiene, en vez de forzarlo. No afecta
+     a los elementos con un ancho explícito (w-8, shrink-0, etc.) — esos
+     siguen respetando su tamaño fijo igual. */
+  .grid > *,
+  .flex > * {
+    min-width: 0;
+  }
   body {
     @apply bg-paper text-ink font-body antialiased;
     background-image: radial-gradient(ellipse 900px 480px at 12% -10%, rgba(229, 30, 58, 0.1), transparent 60%),
