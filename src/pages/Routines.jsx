@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import useEmblaCarousel from "embla-carousel-react";
 import { PageHeader, Card, Tag, CharacterArt, ProgressBar } from "../components/ui";
 import { vegetaTraining } from "../data/mockData";
 import { DIAS_CORTOS, getWeekDates, toISO, isSameDay } from "../utils/date";
@@ -218,6 +219,13 @@ export default function Routines() {
 
   const today = new Date();
   const weekDates = getWeekDates(today);
+  const todayIdx = weekDates.findIndex((d) => isSameDay(d, today));
+  // Calendario de la semana (nuevo formato): la tira de arriba solo dice
+  // "qué día es" y "hay algo ese día sí/no" — el detalle completo (nombre
+  // de la rutina) vive aparte, en un renglón grande debajo, así nunca
+  // dependemos de que un nombre largo entre en una celda angosta.
+  const [selectedDayIdx, setSelectedDayIdx] = useState(todayIdx === -1 ? 0 : todayIdx);
+  const [emblaRef] = useEmblaCarousel({ align: "start", dragFree: true, containScroll: "trimSnaps" });
 
   // Vegeta de la semana (Mecánica 2) — se mueve con días REALMENTE
   // entrenados (check-in manual o automático por marca), no con el Tracker
@@ -509,55 +517,87 @@ export default function Routines() {
         </Link>
       </div>
 
-      {/* Calendario semanal — qué rutina toca cada día, según los días
-          reales configurados en cada rutina (ya no un mock aparte). En
-          mobile forzar 7 columnas en una card angosta apretaba tanto que los
-          nombres de rutina se cortaban ("Che Day", "Esp..."). Ahora es una
-          tira horizontal con scroll propio (no afecta el resto de la
-          página) y celdas bien más grandes — en pantallas con lugar de
-          sobra (sm+) vuelve a ser una grilla fija de 7, ahí sí entra todo
-          junto sin apretar. */}
+      {/* Calendario semanal — rediseñado: la tira de arriba solo tiene que
+          decir "qué día es" y "hay algo ese día", así nunca depende de que
+          un nombre de rutina largo entre en una celda de 45px. El detalle
+          (qué rutina toca) se muestra aparte, en un renglón grande abajo,
+          para el día que tengas seleccionado (por default, hoy). El
+          carrusel usa embla-carousel-react para el swipe táctil — misma
+          librería que usa shadcn/ui, la sumamos liviana solo para esto. */}
       <Card className="mb-8">
         <div className="mb-4 flex items-center justify-between">
           <p className="eyebrow text-maroon">Calendario de la semana</p>
           <p className="font-mono text-xs text-muted">Entrenás {weeklyDaysUsed} día(s) por semana</p>
         </div>
-        <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 snap-x snap-mandatory sm:mx-0 sm:grid sm:grid-cols-7 sm:overflow-visible sm:px-0 sm:pb-0">
-          {weekDates.map((d, i) => {
-            const dayRoutines = routines.filter((r) => r.daysOfWeek.includes(i));
-            const isToday = isSameDay(d, today);
-            return (
-              <div
-                key={toISO(d)}
-                className={`w-24 shrink-0 snap-start border p-3 text-center sm:w-auto ${
-                  isToday ? "border-maroon bg-maroon/5" : "border-maroon/15"
-                }`}
-              >
-                <p className="font-mono text-[10px] uppercase tracking-widest2 text-muted">
-                  {isToday ? "Hoy" : DIAS_CORTOS[i]}
-                </p>
-                <p className="mb-2 font-mono text-xs text-muted">{d.getDate()}</p>
-                <div className="flex flex-col gap-1.5">
-                  {dayRoutines.length === 0 ? (
-                    <span className="font-mono text-[10px] text-muted/60">Descanso</span>
-                  ) : (
-                    dayRoutines.map((r) => (
-                      <span
-                        key={r.id}
-                        className="break-words bg-maroon px-1.5 py-1.5 font-mono text-[10px] leading-tight text-paper"
-                      >
-                        {r.name}
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
+
+        <div className="-mx-5 overflow-hidden px-5" ref={emblaRef}>
+          <div className="flex gap-2">
+            {weekDates.map((d, i) => {
+              const dayRoutines = routines.filter((r) => r.daysOfWeek.includes(i));
+              const isToday = isSameDay(d, today);
+              const isSelected = selectedDayIdx === i;
+              return (
+                <button
+                  key={toISO(d)}
+                  onClick={() => setSelectedDayIdx(i)}
+                  className={`flex w-16 shrink-0 flex-col items-center gap-1.5 border py-3 transition-colors duration-150 ${
+                    isSelected ? "border-maroon bg-maroon/10" : "border-maroon/15 hover:border-maroon/30"
+                  }`}
+                >
+                  <span className="font-mono text-[9px] uppercase tracking-widest2 text-muted">
+                    {DIAS_CORTOS[i]}
+                  </span>
+                  <span
+                    className={`flex h-7 w-7 items-center justify-center rounded-full font-mono text-sm ${
+                      isToday ? "bg-maroon text-paper" : "text-ink"
+                    }`}
+                  >
+                    {d.getDate()}
+                  </span>
+                  <span className="flex h-1.5 items-center gap-0.5">
+                    {dayRoutines.length === 0 ? (
+                      <span className="h-1 w-1 rounded-full bg-muted/40" />
+                    ) : (
+                      dayRoutines
+                        .slice(0, 3)
+                        .map((r) => <span key={r.id} className="h-1.5 w-1.5 rounded-full bg-maroon" />)
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <p className="mt-2 text-center font-mono text-[9px] uppercase tracking-widest2 text-muted/60 sm:hidden">
-          ← deslizá para ver toda la semana →
-        </p>
+
+        {/* Detalle del día seleccionado — acá sí entra el nombre completo
+            de la rutina sin apretar nada. */}
+        {(() => {
+          const d = weekDates[selectedDayIdx];
+          if (!d) return null;
+          const dayRoutines = routines.filter((r) => r.daysOfWeek.includes(selectedDayIdx));
+          const isToday = isSameDay(d, today);
+          return (
+            <div className="mt-4 border-t border-maroon/10 pt-4">
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-widest2 text-muted">
+                {isToday ? "Hoy" : DAY_NAMES[selectedDayIdx]} · {d.getDate()}/{d.getMonth() + 1}
+              </p>
+              {dayRoutines.length === 0 ? (
+                <p className="text-sm text-muted">Día de descanso — no tenés rutinas programadas.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {dayRoutines.map((r) => (
+                    <span
+                      key={r.id}
+                      className="bg-maroon px-3 py-2 font-mono text-xs uppercase tracking-widest2 text-paper"
+                    >
+                      {r.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </Card>
 
       {/* Rutinas — clickeables, se expanden para editar días y ejercicios */}
