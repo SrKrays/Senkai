@@ -93,6 +93,13 @@ export default function Routines() {
   const [routineHistory, setRoutineHistory] = useState({});
 
   const [expandedId, setExpandedId] = useState(null);
+  // Dentro de una rutina expandida, "Historial y constancia" y "Agregar
+  // ejercicio" arrancan colapsados — son las dos secciones más densas y no
+  // hacen falta para el uso más común (mirar/editar los ejercicios ya
+  // cargados). Solo puede haber una rutina expandida a la vez, así que este
+  // estado vive a nivel página en vez de por card.
+  const [showHistory, setShowHistory] = useState(false);
+  const [showAddExercise, setShowAddExercise] = useState(false);
 
   const [showNewRoutine, setShowNewRoutine] = useState(false);
   const [newName, setNewName] = useState("");
@@ -224,6 +231,8 @@ export default function Routines() {
     setExpandedId((prev) => (prev === id ? null : id));
     setEditingExId(null);
     setEditingRoutineId(null);
+    setShowHistory(false);
+    setShowAddExercise(false);
     resetExercisePicker();
   }
 
@@ -736,8 +745,15 @@ export default function Routines() {
 
                 {isOpen && (
                   <div className="border-t border-maroon/10 pt-4" onClick={(e) => e.stopPropagation()}>
-                    <p className="eyebrow mb-2">Historial y constancia</p>
-                    {(() => {
+                    <button
+                      onClick={() => setShowHistory((v) => !v)}
+                      className="flex w-full items-center justify-between text-left"
+                      aria-expanded={showHistory}
+                    >
+                      <p className="eyebrow">Historial y constancia</p>
+                      <span className="text-muted">{showHistory ? "▲" : "▼"}</span>
+                    </button>
+                    {showHistory && (() => {
                       const { completed, trainedThisWeek, scheduledDays, volumeTrend } = computeRoutineInsight(
                         r,
                         routineHistory[r.id],
@@ -745,7 +761,7 @@ export default function Routines() {
                       );
                       return (
                         <>
-                          <p className="mb-2 text-xs text-muted">
+                          <p className="mb-2 mt-2 text-xs text-muted">
                             {scheduledDays > 0
                               ? `Constancia esta semana: ${trainedThisWeek}/${scheduledDays} día(s) programados.`
                               : "Configurá los días de esta rutina para ver tu constancia."}
@@ -774,8 +790,17 @@ export default function Routines() {
 
                 {isOpen && (
                   <div className="border-t border-maroon/10 pt-4" onClick={(e) => e.stopPropagation()}>
-                    <p className="eyebrow mb-2">Agregar ejercicio</p>
-                    <p className="mb-2 text-xs text-muted">
+                    <button
+                      onClick={() => setShowAddExercise((v) => !v)}
+                      className="flex w-full items-center justify-between text-left"
+                      aria-expanded={showAddExercise}
+                    >
+                      <p className="eyebrow">Agregar ejercicio</p>
+                      <span className="text-muted">{showAddExercise ? "▲" : "▼"}</span>
+                    </button>
+                    {showAddExercise && (
+                    <>
+                    <p className="mb-2 mt-2 text-xs text-muted">
                       Buscá en tu biblioteca o en WorkoutX — si no existe todavía, se crea solo al agregarlo.
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
@@ -856,6 +881,8 @@ export default function Routines() {
                         Va a quedar una marca real de {newExWeight}kg × {newExRepMax || newExRepMin || 1} reps hoy en
                         Entrenamiento.
                       </p>
+                    )}
+                    </>
                     )}
                   </div>
                 )}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import PowerReader from "./PowerReader";
@@ -9,14 +9,19 @@ import Logo, { LogoBadge } from "./Logo";
 import { usePoints } from "../context/PointsContext";
 import { useAuth } from "../context/AuthContext";
 
+// `primary: true` = vive siempre visible en el nav de abajo en mobile (las
+// 5 secciones de uso diario). El resto queda detrás del botón "Más" — un
+// usuario nuevo no necesita ver las 10 de una para poder usar la app. El
+// sidebar de escritorio sigue mostrando las 10 igual, ahí no hace falta
+// esconder nada (hay lugar de sobra).
 const nav = [
-  { to: "/", label: "Dashboard", num: "00" },
+  { to: "/", label: "Dashboard", num: "00", primary: true },
   { to: "/tracker", label: "Tracker de Hábitos", num: "01" },
   { to: "/personaje", label: "Personaje", num: "02" },
-  { to: "/entrenamiento", label: "Entrenamiento", num: "03" },
-  { to: "/rutinas", label: "Rutinas", num: "04" },
-  { to: "/nutricion", label: "Nutrición", num: "05" },
-  { to: "/suplementacion", label: "Suplementación", num: "06" },
+  { to: "/entrenamiento", label: "Entrenamiento", num: "03", primary: true },
+  { to: "/rutinas", label: "Rutinas", num: "04", primary: true },
+  { to: "/nutricion", label: "Nutrición", num: "05", primary: true },
+  { to: "/suplementacion", label: "Suplementación", num: "06", primary: true },
   { to: "/grupos", label: "Grupos", num: "07" },
   { to: "/estadisticas", label: "Objetivos y Estadísticas", num: "08" },
   { to: "/personalizacion", label: "User", num: "09" },
@@ -28,14 +33,14 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const visibleNav = nav.filter((item) => !item.adminOnly || user?.role === "Admin");
-  const bottomNavRef = useRef(null);
+  const primaryNav = visibleNav.filter((item) => item.primary);
+  const secondaryNav = visibleNav.filter((item) => !item.primary);
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  // Con 10 secciones, el nav de abajo (mobile) scrollea horizontal — sin esto
-  // el ítem activo puede quedar fuera de la parte visible al navegar directo
-  // (ej: por un link interno), obligando a buscarlo a mano.
+  // Cierra el panel "Más" solo al navegar a otra sección — evita que quede
+  // abierto tapando la pantalla nueva.
   useEffect(() => {
-    const active = bottomNavRef.current?.querySelector('[aria-current="page"]');
-    active?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    setMoreOpen(false);
   }, [location.pathname]);
 
   function handleLogout() {
@@ -126,20 +131,18 @@ export default function Layout() {
             </AnimatePresence>
           </main>
 
-          {/* Bottom nav — mobile. pb con env(safe-area-inset-bottom): en la PWA
-              instalada en iPhone, esa franja de abajo es el home indicator —
-              sin este padding el nav queda pegado y a veces tapado por él. */}
-          <nav
-            ref={bottomNavRef}
-            className="fixed inset-x-0 bottom-0 z-10 flex overflow-x-auto border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
-          >
-            {visibleNav.map((item) => (
+          {/* Bottom nav — mobile: 5 secciones de uso diario + "Más". pb con
+              env(safe-area-inset-bottom): en la PWA instalada en iPhone, esa
+              franja de abajo es el home indicator — sin este padding el nav
+              queda pegado y a veces tapado por él. */}
+          <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+            {primaryNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === "/"}
                 className={({ isActive }) =>
-                  `flex min-w-[76px] flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium ${
+                  `flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium ${
                     isActive ? "text-teal" : "text-ink/50"
                   }`
                 }
@@ -148,7 +151,76 @@ export default function Layout() {
                 <span className="whitespace-nowrap">{item.label}</span>
               </NavLink>
             ))}
+            <button
+              onClick={() => setMoreOpen(true)}
+              aria-label="Más secciones"
+              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium ${
+                secondaryNav.some((item) => location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to)))
+                  ? "text-teal"
+                  : "text-ink/50"
+              }`}
+            >
+              <span className="font-mono text-[9px]">···</span>
+              <span className="whitespace-nowrap">Más</span>
+            </button>
           </nav>
+
+          {/* Panel "Más" — el resto de las secciones (Tracker, Personaje,
+              Grupos, Objetivos, User), fuera del nav principal para que un
+              usuario nuevo no vea las 10 de una. */}
+          <AnimatePresence>
+            {moreOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setMoreOpen(false)}
+                  className="fixed inset-0 z-20 bg-paper/80 backdrop-blur-sm md:hidden"
+                />
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="hud fixed inset-x-0 bottom-0 z-30 rounded-t-lg border border-b-0 border-line bg-cream pb-[env(safe-area-inset-bottom)] md:hidden"
+                >
+                  <div className="flex items-center justify-between border-b border-line px-5 py-4">
+                    <p className="eyebrow">Más secciones</p>
+                    <button onClick={() => setMoreOpen(false)} aria-label="Cerrar" className="text-muted hover:text-maroon">
+                      ✕
+                    </button>
+                  </div>
+                  <div className="px-3 py-2">
+                    {secondaryNav.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.to === "/"}
+                        className={({ isActive }) =>
+                          `mb-1 flex items-center gap-3 rounded-sm border px-3 py-3 text-sm ${
+                            isActive
+                              ? "border-maroon bg-maroon/[0.12] text-ink"
+                              : "border-transparent text-ink/70 hover:bg-maroon/5"
+                          }`
+                        }
+                      >
+                        <span className="font-mono text-[10px] opacity-60">{item.num}</span>
+                        <span className="font-medium">{item.label}</span>
+                      </NavLink>
+                    ))}
+                    <button
+                      onClick={handleLogout}
+                      className="mt-1 flex w-full items-center gap-3 rounded-sm border border-transparent px-3 py-3 text-left text-sm text-ink/70 hover:bg-maroon/5"
+                    >
+                      <span className="font-mono text-[10px] opacity-60">⏻</span>
+                      <span className="font-medium">Cerrar sesión</span>
+                    </button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

@@ -119,6 +119,13 @@ export default function Stats() {
   const { byMuscle, loading: ranksLoading, growth, setGrowthWindow } = useRank();
   const muscleGroups = Object.keys(byMuscle).sort();
   const [savingWindow, setSavingWindow] = useState(false);
+  // Colapsado por default en mobile: "Rango por ejercicio" agrupado por
+  // músculo es mucha info junta para la primera vista — se expande solo el
+  // grupo que el usuario toca.
+  const [expandedMuscles, setExpandedMuscles] = useState({});
+  function toggleMuscle(muscle) {
+    setExpandedMuscles((prev) => ({ ...prev, [muscle]: !prev[muscle] }));
+  }
 
   // Build física por grupo muscular (Fase 9 v2, Capa 5) — promedio de
   // TierLevel de los ejercicios CON marca en cada grupo (0-6, igual escala
@@ -378,9 +385,9 @@ export default function Stats() {
             <p className="max-w-sm text-sm text-muted">Agregá el primero con "+ Nuevo objetivo".</p>
           </Card>
         ) : (
-          <div className="flex flex-wrap gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {trainingGoals.map((o) => (
-              <Card key={o.id} className="flex min-w-[230px] flex-1 flex-col gap-3">
+              <Card key={o.id} className="flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold">{o.title}</p>
@@ -438,7 +445,7 @@ export default function Stats() {
               </>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
               onClick={handleStartWindowToday}
               disabled={savingWindow}
@@ -468,10 +475,24 @@ export default function Stats() {
           <Card className="text-sm text-muted">No se pudo cargar el catálogo de ejercicios.</Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {muscleGroups.map((muscle) => (
+            {muscleGroups.map((muscle) => {
+              const exercises = byMuscle[muscle];
+              const markedCount = exercises.filter((r) => r.prKg).length;
+              const isExpanded = !!expandedMuscles[muscle];
+              return (
               <Card key={muscle} className="flex flex-col gap-3">
-                <p className="eyebrow text-maroon">{muscle}</p>
-                {byMuscle[muscle].map((r) => {
+                <button
+                  onClick={() => toggleMuscle(muscle)}
+                  className="flex items-center justify-between gap-2 text-left"
+                  aria-expanded={isExpanded}
+                >
+                  <span className="eyebrow text-maroon">{muscle}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] text-muted">{markedCount}/{exercises.length} con marca</span>
+                    <span className="text-muted">{isExpanded ? "▲" : "▼"}</span>
+                  </span>
+                </button>
+                {isExpanded && byMuscle[muscle].map((r) => {
                   const momentum = momentumFor(r);
                   const nextTierName = r.tierLevel != null ? TIER_NAMES[r.tierLevel + 1] : null;
                   return (
@@ -518,7 +539,8 @@ export default function Stats() {
                   );
                 })}
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

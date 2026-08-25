@@ -21,6 +21,18 @@
   html {
     @apply scroll-smooth;
   }
+  html,
+  body {
+    /* Red de seguridad para mobile: si algún elemento puntual se pasa de
+       ancho (un botón largo, una card que no colapsa a 1 columna), esto
+       hace que SOLO ese elemento se recorte en el borde en vez de que toda
+       la página quede scrolleable de costado y arrastre el resto del
+       contenido con ella (que es lo que se veía en las capturas del
+       celular: texto cortado de los dos lados en secciones que ni tienen
+       el bug directamente). No reemplaza arreglar cada bug puntual, pero
+       evita que uno solo rompa la lectura de toda la pantalla. */
+    overflow-x: hidden;
+  }
   body {
     @apply bg-paper text-ink font-body antialiased;
     background-image: radial-gradient(ellipse 900px 480px at 12% -10%, rgba(229, 30, 58, 0.1), transparent 60%),

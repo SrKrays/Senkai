@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PageHeader, Card, Tag, ProgressBar, CharacterArt } from "../components/ui";
 import { useSupplementPlan } from "../context/SupplementPlanContext";
 import { useSupplementation } from "../context/SupplementationContext";
@@ -25,7 +26,7 @@ function AdherencePanel({ dayMap, today }) {
   const streak = currentStreak(takenMap, today);
 
   return (
-    <div className="border-t border-maroon/10 pt-3">
+    <div className="pt-1">
       <div className="mb-2 flex items-baseline justify-between">
         <p className="eyebrow text-maroon">{monthLabel(today)}</p>
         <p className="font-mono text-[10px] text-muted">
@@ -86,6 +87,9 @@ function RecommendationCard({ rec, enabled, busy, dayMap, today, onTaken, onSkip
   const snoozeTime = rec.snoozeUntil
     ? new Date(rec.snoozeUntil).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
     : null;
+  // Historial/adherencia colapsado por default — son 4 cards en la grilla y
+  // el calendario mensual de cada una ocupa bastante; se pide bajo demanda.
+  const [showHistory, setShowHistory] = useState(false);
 
   return (
     <Card className="flex flex-col gap-3">
@@ -138,7 +142,15 @@ function RecommendationCard({ rec, enabled, busy, dayMap, today, onTaken, onSkip
         </div>
       )}
 
-      <AdherencePanel dayMap={dayMap} today={today} />
+      <button
+        onClick={() => setShowHistory((v) => !v)}
+        className="flex items-center justify-between border-t border-maroon/10 pt-3 text-left font-mono text-[10px] uppercase tracking-widest2 text-muted hover:text-maroon"
+        aria-expanded={showHistory}
+      >
+        <span>Ver historial</span>
+        <span>{showHistory ? "▲" : "▼"}</span>
+      </button>
+      {showHistory && <AdherencePanel dayMap={dayMap} today={today} />}
 
       <button
         disabled={busy}

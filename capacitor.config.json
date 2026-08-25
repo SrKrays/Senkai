@@ -1,0 +1,10 @@
+{
+  "appId": "com.senkai.app",
+  "appName": "Senkai",
+  "webDir": "dist",
+  "server": {
+    "url": "https://senkai-beta.vercel.app",
+    "androidScheme": "https",
+    "cleartext": false
+  }
+}
