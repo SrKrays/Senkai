@@ -15,18 +15,26 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!token) {
-      // Acceso directo temporal ("por ahora", a pedido) — si hay una cuenta
-      // default configurada en .env (VITE_DEFAULT_EMAIL/VITE_DEFAULT_PASSWORD,
-      // nunca se sube a git), la app inicia sesión sola con ella en vez de
-      // mandar a /login. Sigue siendo un login real contra la API — no se
-      // tocó el backend ni se saltó la autenticación, solo se automatizó.
-      // Sin esas dos variables cargadas, el comportamiento es el de siempre
-      // (pantalla de login). Para volver a pedir login a todos, alcanza con
-      // borrar esas dos líneas del .env.
+      // Acceso directo temporal ("por ahora", a pedido) — la pantalla de
+      // login queda desactivada mientras haya una cuenta default cargada en
+      // .env (VITE_DEFAULT_EMAIL/PASSWORD/NAME, nunca se sube a git). Al
+      // abrir la app: 1) intenta iniciar sesión con esa cuenta, 2) si
+      // todavía no existe, la crea sola (mismo endpoint de registro de
+      // siempre) y queda lista para la próxima vez. Sigue siendo auth real
+      // contra la API — nada de esto toca el backend ni salta la
+      // autenticación, solo evita que una persona tenga que tipear nada.
+      // Para volver a pedir login normal, borrá esas 3 líneas del .env.
       const defaultEmail = import.meta.env.VITE_DEFAULT_EMAIL;
       const defaultPassword = import.meta.env.VITE_DEFAULT_PASSWORD;
+      const defaultName = import.meta.env.VITE_DEFAULT_NAME || "Ronnie";
       if (defaultEmail && defaultPassword) {
         apiFetch("/api/auth/login", { method: "POST", body: { email: defaultEmail, password: defaultPassword } })
+          .catch(() =>
+            apiFetch("/api/auth/register", {
+              method: "POST",
+              body: { name: defaultName, email: defaultEmail, password: defaultPassword },
+            })
+          )
           .then((data) => {
             localStorage.setItem(TOKEN_KEY, data.token);
             setToken(data.token);
