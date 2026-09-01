@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
-import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
+import { PageHeader, Card, ProgressBar, Tag, CharacterHero } from "../components/ui";
 import CharacterFlipbook from "../components/CharacterFlipbook";
 import { useNutrition } from "../context/NutritionContext";
-import { useTracker } from "../context/TrackerContext";
-import { useTraining } from "../context/TrainingContext";
-import { useSupplementation } from "../context/SupplementationContext";
-import { usePoints } from "../context/PointsContext";
 import { useAuth } from "../context/AuthContext";
 import { useCharacter } from "../context/CharacterContext";
 import { gokuEating } from "../data/mockData";
@@ -31,6 +27,8 @@ function MealSlotCard({
   slotNameDraft,
   draft,
   token,
+  started,
+  onStart,
   onStartEditSlotName,
   onSlotNameDraftChange,
   onSaveSlotName,
@@ -46,7 +44,11 @@ function MealSlotCard({
   const [suggestions, setSuggestions] = useState([]);
   const [selectedFood, setSelectedFood] = useState(null);
   const [loadingFood, setLoadingFood] = useState(false);
-  const showForm = !entry || isEditingEntry;
+  // Fase 0 P1: el formulario completo (foto, macros, notas) ya no vive
+  // siempre abierto en cada división vacía — eso eran hasta 5-6 formularios
+  // idénticos a la vista de una. Ahora se abre a demanda, al tocar "+
+  // Registrar" en esa división puntual.
+  const showForm = isEditingEntry || (!entry && started);
   const debouncedDescription = useDebouncedValue(draft.description, 400);
 
   useEffect(() => {
@@ -159,6 +161,14 @@ function MealSlotCard({
             </button>
           </div>
         </div>
+      ) : !showForm ? (
+        <button
+          onClick={() => onStart(slot.id)}
+          className="flex flex-col items-center gap-1 border border-dashed border-maroon/25 py-6 text-center hover:border-maroon/50"
+        >
+          <span className="font-mono text-xs uppercase tracking-widest2 text-maroon">+ Registrar</span>
+          <span className="text-xs text-muted">Todavía no cargaste esta comida</span>
+        </button>
       ) : (
         <div className="flex flex-col gap-2">
           <div className="relative">
@@ -241,9 +251,9 @@ function MealSlotCard({
             >
               {isEditingEntry ? "Guardar" : "Registrar comida"}
             </button>
-            {isEditingEntry && (
+            {(isEditingEntry || !entry) && (
               <button
-                onClick={() => onCancelEditLog(slot.id)}
+                onClick={() => (isEditingEntry ? onCancelEditLog(slot.id) : onStart(slot.id, false))}
                 className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
               >
                 Cancelar
@@ -273,10 +283,6 @@ export default function Nutrition() {
     updateMealLog,
     deleteMealLog,
   } = useNutrition();
-  const { trackerScore } = useTracker();
-  const { trainingScore } = useTraining();
-  const { supplementationScore } = useSupplementation();
-  const { powerLevel } = usePoints();
   const { token } = useAuth();
   const { current: vegetaStage } = useCharacter();
 
@@ -284,9 +290,19 @@ export default function Nutrition() {
   const [editingSlotId, setEditingSlotId] = useState(null);
   const [editingSlotName, setEditingSlotName] = useState(null);
   const [slotNameDraft, setSlotNameDraft] = useState("");
+  const [startedSlotIds, setStartedSlotIds] = useState(() => new Set());
 
   const [showNewSlot, setShowNewSlot] = useState(false);
   const [newSlotName, setNewSlotName] = useState("");
+
+  function setSlotStarted(slotId, value = true) {
+    setStartedSlotIds((prev) => {
+      const next = new Set(prev);
+      if (value) next.add(slotId);
+      else next.delete(slotId);
+      return next;
+    });
+  }
 
   const calPct = calorieTarget ? caloriesToday / calorieTarget : 0;
   const gokuStage = getGokuStage(mealsLoggedToday);
@@ -323,6 +339,7 @@ export default function Nutrition() {
       imageUrl: d.imageUrl,
     });
     clearDraft(slotId);
+    setSlotStarted(slotId, false);
   }
 
   function startEditLog(slotId) {
@@ -375,132 +392,104 @@ export default function Nutrition() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Nutrición"
-        title="Combustible del día"
-        description={`Objetivo: ${goal}. Registrá cada comida y mirá cómo Goku (y Vegeta) reaccionan a tu progreso.`}
-      />
+      <PageHeader eyebrow="Nutrición" title="Combustible del día" description={`Objetivo: ${goal}.`} />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_240px]">
-        <div>
-          <Card className="mb-6">
-            <div className="mb-3 flex items-baseline justify-between">
-              <p className="eyebrow">Calorías de hoy</p>
-              <p className="font-mono text-sm text-muted">
-                {caloriesToday} / {calorieTarget} kcal
-              </p>
-            </div>
-            <ProgressBar progress={calPct} tone="teal" />
-            <p className="mt-2 font-mono text-[10px] text-muted">
-              {mealsLoggedToday}/{mealSlots.length} comidas registradas hoy
-            </p>
-          </Card>
+      {/* Hero — Goku, primero en el DOM (antes vivía en una columna lateral
+          que solo aparecía desde xl: en mobile quedaba abajo de todo). */}
+      <CharacterHero
+        eyebrow={`${mealsLoggedToday} comida(s) hoy`}
+        name={gokuStage.tag}
+        tag={vegetaStage.name}
+        tone="gold"
+        progress={calPct}
+        art={<CharacterFlipbook frames={gokuEating.map((s) => s.img)} alt="Goku comiendo" width={140} height={140} />}
+      >
+        <p className="font-mono text-xs text-muted">
+          {caloriesToday} / {calorieTarget} kcal · {mealsLoggedToday}/{mealSlots.length} comidas
+        </p>
+      </CharacterHero>
 
-          {/* Paneles de comida — editables, agregables y quitables */}
-          <div className="mb-4 flex items-center justify-between">
-            <p className="eyebrow">Comidas de hoy</p>
-            <button
-              onClick={() => setShowNewSlot((v) => !v)}
-              className="font-mono text-[10px] uppercase tracking-widest2 text-maroon underline underline-offset-4"
-            >
-              + Agregar comida
-            </button>
-          </div>
-
-          {showNewSlot && (
-            <Card className="mb-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <input
-                  value={newSlotName}
-                  onChange={(e) => setNewSlotName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddSlot()}
-                  placeholder="Nombre (ej: Colación nocturna)"
-                  className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAddSlot}
-                    className="bg-maroon px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250"
-                  >
-                    Agregar
-                  </button>
-                  <button
-                    onClick={() => setShowNewSlot(false)}
-                    className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {mealSlots.length === 0 ? (
-            <Card className="flex flex-col items-center gap-2 py-16 text-center">
-              <p className="font-display text-3xl tracking-wide text-maroon">Sin comidas definidas</p>
-              <p className="max-w-sm text-sm text-muted">Agregá al menos una división arriba para empezar a registrar.</p>
-            </Card>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {mealSlots.map((slot) => (
-                <MealSlotCard
-                  key={slot.id}
-                  slot={slot}
-                  entry={todayLogs[slot.id]}
-                  isEditingEntry={editingSlotId === slot.id}
-                  isEditingName={editingSlotName === slot.id}
-                  slotNameDraft={slotNameDraft}
-                  draft={draftFor(slot.id)}
-                  token={token}
-                  onStartEditSlotName={startEditSlotName}
-                  onSlotNameDraftChange={setSlotNameDraft}
-                  onSaveSlotName={saveSlotName}
-                  onDeleteSlot={deleteMealSlot}
-                  onSetDraft={setDraft}
-                  onImagePick={handleImagePick}
-                  onRegister={handleRegister}
-                  onStartEditLog={startEditLog}
-                  onSaveEditLog={saveEditLog}
-                  onCancelEditLog={cancelEditLog}
-                  onDeleteLog={(slotId) => deleteMealLog(todayISO, slotId)}
-                />
-              ))}
-            </div>
-          )}
-
-          <Card className="mt-6">
-            <div className="mb-2 flex items-baseline justify-between">
-              <p className="eyebrow text-maroon">Progreso mensual de nutrición</p>
-              <p className="font-mono text-xs text-muted">{Math.round(nutritionScore * 100)}%</p>
-            </div>
-            <ProgressBar progress={nutritionScore} />
-            <p className="mt-2 text-xs text-muted">
-              Promedio de comidas registradas por día este mes. Suma junto con el Tracker, Entrenamiento y
-              Suplementación a la evolución de Vegeta.
-            </p>
-          </Card>
-        </div>
-
-        {/* Goku evolucionando al costado, según cuántas comidas registraste hoy */}
-        <div>
-          <p className="eyebrow mb-4">Goku de hoy</p>
-          <Card className="sticky top-24 flex flex-col items-center gap-4 py-8">
-            <CharacterFlipbook frames={gokuEating.map((s) => s.img)} alt="Goku comiendo" width={200} height={200} />
-            <div className="text-center">
-              <p className="eyebrow mb-1">{mealsLoggedToday} comida(s) hoy</p>
-              <h3 className="font-display text-2xl tracking-wide text-maroon">{gokuStage.tag}</h3>
-            </div>
-            <p className="text-center text-xs text-muted">
-              Cada comida que registrás llena un cuenco más. Al completar todas, Goku queda satisfecho.
-            </p>
-            <div className="w-full border-t border-maroon/10 pt-4 text-center">
-              <p className="eyebrow mb-1">Progreso combinado (Vegeta)</p>
-              <p className="font-display text-xl text-maroon">{vegetaStage.name}</p>
-              <p className="font-mono text-xs text-muted">{powerLevel.toLocaleString("es-AR")} pts</p>
-            </div>
-          </Card>
-        </div>
+      {/* Paneles de comida — editables, agregables y quitables */}
+      <div className="mb-4 flex items-center justify-between">
+        <p className="eyebrow">Comidas de hoy</p>
+        <button
+          onClick={() => setShowNewSlot((v) => !v)}
+          className="font-mono text-[10px] uppercase tracking-widest2 text-maroon underline underline-offset-4"
+        >
+          + Agregar división
+        </button>
       </div>
+
+      {showNewSlot && (
+        <Card className="mb-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              value={newSlotName}
+              onChange={(e) => setNewSlotName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddSlot()}
+              placeholder="Nombre (ej: Colación nocturna)"
+              className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddSlot}
+                className="bg-maroon px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250"
+              >
+                Agregar
+              </button>
+              <button
+                onClick={() => setShowNewSlot(false)}
+                className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {mealSlots.length === 0 ? (
+        <Card className="flex flex-col items-center gap-2 py-16 text-center">
+          <p className="font-display text-3xl tracking-wide text-maroon">Sin comidas definidas</p>
+          <p className="max-w-sm text-sm text-muted">Agregá al menos una división arriba para empezar a registrar.</p>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {mealSlots.map((slot) => (
+            <MealSlotCard
+              key={slot.id}
+              slot={slot}
+              entry={todayLogs[slot.id]}
+              isEditingEntry={editingSlotId === slot.id}
+              isEditingName={editingSlotName === slot.id}
+              slotNameDraft={slotNameDraft}
+              draft={draftFor(slot.id)}
+              token={token}
+              started={startedSlotIds.has(slot.id)}
+              onStart={(slotId, value) => setSlotStarted(slotId, value)}
+              onStartEditSlotName={startEditSlotName}
+              onSlotNameDraftChange={setSlotNameDraft}
+              onSaveSlotName={saveSlotName}
+              onDeleteSlot={deleteMealSlot}
+              onSetDraft={setDraft}
+              onImagePick={handleImagePick}
+              onRegister={handleRegister}
+              onStartEditLog={startEditLog}
+              onSaveEditLog={saveEditLog}
+              onCancelEditLog={cancelEditLog}
+              onDeleteLog={(slotId) => deleteMealLog(todayISO, slotId)}
+            />
+          ))}
+        </div>
+      )}
+
+      <Card className="mt-6">
+        <div className="mb-2 flex items-baseline justify-between">
+          <p className="eyebrow text-maroon">Progreso mensual</p>
+          <p className="font-mono text-xs text-muted">{Math.round(nutritionScore * 100)}%</p>
+        </div>
+        <ProgressBar progress={nutritionScore} />
+      </Card>
     </div>
   );
 }

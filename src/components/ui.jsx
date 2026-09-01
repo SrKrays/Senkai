@@ -279,3 +279,44 @@ export function Select({ label, className = "", children, ...rest }) {
 export function SectionHeader({ children, className = "" }) {
   return <p className={`eyebrow mb-4 ${className}`}>{children}</p>;
 }
+
+// ── CharacterHero (Fase 0 P1 — corrección tras el chat con GPT) ──────────
+// Cada sección con "mundo" propio (Nutrición=Goku, Rutinas=Vegeta, a futuro
+// Entrenamiento=Piccolo) mostraba su personaje como una card más entre
+// otras — en mobile, cuando esa card vivía en una columna lateral que solo
+// aparece en xl, ni siquiera se veía sin scroll. Este componente la sube a
+// ser lo primero de la pantalla, mismo lugar en todas las secciones. No
+// reemplaza a CharacterArt/CharacterFlipbook (siguen siendo el render del
+// arte en sí) — esto es el layout alrededor: nombre, tag, progreso y una
+// acción, con `tone` controlando el acento de color de esa sección.
+// `art` recibe el elemento ya armado (<CharacterFlipbook .../> o
+// <CharacterArt .../>) para no acoplar este componente a una sola forma de
+// mostrar el personaje.
+const HERO_TONE_TEXT = {
+  maroon: "text-maroon",
+  teal: "text-teal",
+  gold: "text-gold",
+};
+export function CharacterHero({ eyebrow, name, tag, art, tone = "maroon", progress, children }) {
+  return (
+    <Card className="relative mb-6 flex flex-col items-center gap-5 overflow-hidden py-7 text-center sm:flex-row sm:items-center sm:text-left">
+      <div className="scanlines" />
+      <div className="aura-pulse shrink-0">{art}</div>
+      <div className="min-w-0 flex-1">
+        {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
+        <h2 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">{name}</h2>
+        {tag && (
+          <span className={`mt-1 inline-block font-mono text-[11px] uppercase tracking-widest2 ${HERO_TONE_TEXT[tone] ?? HERO_TONE_TEXT.maroon}`}>
+            {tag}
+          </span>
+        )}
+        {progress != null && (
+          <div className="mt-3 max-w-sm">
+            <ProgressBar progress={progress} tone={tone === "teal" ? "teal" : "maroon"} />
+          </div>
+        )}
+        {children && <div className="mt-4">{children}</div>}
+      </div>
+    </Card>
+  );
+}

@@ -1,6 +1,21 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  Home,
+  CheckSquare,
+  Sparkles,
+  Dumbbell,
+  CalendarDays,
+  UtensilsCrossed,
+  Pill,
+  Users,
+  BarChart3,
+  Settings,
+  Menu,
+  X,
+  Power,
+} from "lucide-react";
 import PowerReader from "./PowerReader";
 import LevelUpOverlay from "./LevelUpOverlay";
 import RankTierUpOverlay from "./RankTierUpOverlay";
@@ -15,20 +30,25 @@ import { useAuth } from "../context/AuthContext";
 // usuario nuevo no necesita ver las 10 de una para poder usar la app. El
 // sidebar de escritorio sigue mostrando las 10 igual, ahí no hace falta
 // esconder nada (hay lugar de sobra).
+// Fase 0 P1 — corrección de dirección: Grupos pasa a primario (es una de
+// las 5 pantallas "hero" del objetivo) y Suplementación pasa a "Más" —
+// sigue 100% funcional, solo cambia el acceso directo.
 // `icon` solo se usa en el nav de abajo en mobile — ahí no entra un label
 // largo con claridad en un espacio chico, un ícono + palabra corta se lee
 // más rápido sin tener que tocar para enterarte qué es cada sección.
+// Fase 0 P1: emojis fuera del sistema de navegación, reemplazados por
+// lucide-react (ya estaba instalado, casi sin usar hasta ahora).
 const nav = [
-  { to: "/", label: "Dashboard", short: "Inicio", icon: "🏠", num: "00", primary: true },
-  { to: "/tracker", label: "Tracker de Hábitos", short: "Hábitos", icon: "✅", num: "01" },
-  { to: "/personaje", label: "Personaje", short: "Personaje", icon: "🧬", num: "02" },
-  { to: "/entrenamiento", label: "Entrenamiento", short: "Entreno", icon: "🏋️", num: "03", primary: true },
-  { to: "/rutinas", label: "Rutinas", short: "Rutinas", icon: "🗓️", num: "04", primary: true },
-  { to: "/nutricion", label: "Nutrición", short: "Nutrición", icon: "🍽️", num: "05", primary: true },
-  { to: "/suplementacion", label: "Suplementación", short: "Suplem.", icon: "💊", num: "06", primary: true },
-  { to: "/grupos", label: "Grupos", short: "Grupos", icon: "👥", num: "07" },
-  { to: "/estadisticas", label: "Objetivos y Estadísticas", short: "Objetivos", icon: "📊", num: "08" },
-  { to: "/personalizacion", label: "User", short: "Perfil", icon: "⚙️", num: "09" },
+  { to: "/", label: "Dashboard", short: "Inicio", icon: Home, num: "00", primary: true },
+  { to: "/tracker", label: "Tracker de Hábitos", short: "Hábitos", icon: CheckSquare, num: "01" },
+  { to: "/personaje", label: "Personaje", short: "Personaje", icon: Sparkles, num: "02" },
+  { to: "/entrenamiento", label: "Entrenamiento", short: "Entreno", icon: Dumbbell, num: "03", primary: true },
+  { to: "/rutinas", label: "Rutinas", short: "Rutinas", icon: CalendarDays, num: "04", primary: true },
+  { to: "/nutricion", label: "Nutrición", short: "Nutrición", icon: UtensilsCrossed, num: "05", primary: true },
+  { to: "/suplementacion", label: "Suplementación", short: "Suplem.", icon: Pill, num: "06" },
+  { to: "/grupos", label: "Grupos", short: "Grupos", icon: Users, num: "07", primary: true },
+  { to: "/estadisticas", label: "Objetivos y Estadísticas", short: "Objetivos", icon: BarChart3, num: "08" },
+  { to: "/personalizacion", label: "User", short: "Perfil", icon: Settings, num: "09" },
 ];
 
 export default function Layout() {
@@ -99,7 +119,7 @@ export default function Layout() {
               aria-label="Cerrar sesión"
               className="shrink-0 text-muted hover:text-maroon"
             >
-              ⏻
+              <Power size={18} />
             </button>
           </div>
         </aside>
@@ -164,7 +184,7 @@ export default function Layout() {
                   }`
                 }
               >
-                <span className="text-xl leading-none">{item.icon}</span>
+                <item.icon size={22} strokeWidth={2} />
                 <span className="whitespace-nowrap">{item.short}</span>
               </NavLink>
             ))}
@@ -177,7 +197,7 @@ export default function Layout() {
                   : "text-ink/50 active:text-ink/80"
               }`}
             >
-              <span className="text-xl leading-none">☰</span>
+              <Menu size={22} strokeWidth={2} />
               <span className="whitespace-nowrap">Más</span>
             </button>
           </nav>
@@ -205,7 +225,7 @@ export default function Layout() {
                   <div className="flex items-center justify-between border-b border-line px-5 py-4">
                     <p className="eyebrow">Más secciones</p>
                     <button onClick={() => setMoreOpen(false)} aria-label="Cerrar" className="text-muted hover:text-maroon">
-                      ✕
+                      <X size={18} />
                     </button>
                   </div>
                   <div className="px-3 py-2">
@@ -222,7 +242,7 @@ export default function Layout() {
                           }`
                         }
                       >
-                        <span className="text-lg leading-none">{item.icon}</span>
+                        <item.icon size={18} strokeWidth={2} />
                         <span className="font-medium">{item.label}</span>
                       </NavLink>
                     ))}
@@ -230,7 +250,7 @@ export default function Layout() {
                       onClick={handleLogout}
                       className="mt-1 flex w-full items-center gap-3 rounded-sm border border-transparent px-3 py-3 text-left text-sm text-ink/70 hover:bg-maroon/5"
                     >
-                      <span className="text-lg leading-none">⏻</span>
+                      <Power size={18} strokeWidth={2} />
                       <span className="font-medium">Cerrar sesión</span>
                     </button>
                   </div>

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { PageHeader, Card, StatPill, ProgressBar, Tag, CharacterArt } from "../components/ui";
+import { PageHeader, Card, StatPill, ProgressBar, Tag, CharacterArt, Button } from "../components/ui";
 import PowerReader from "../components/PowerReader";
 import { useTraining } from "../context/TrainingContext";
 import { useTracker } from "../context/TrackerContext";
@@ -8,7 +8,6 @@ import { usePoints } from "../context/PointsContext";
 import { useAuth } from "../context/AuthContext";
 import { useGroup } from "../context/GroupContext";
 import { useCharacter } from "../context/CharacterContext";
-import { useProfile } from "../context/ProfileContext";
 import { currentStreak } from "../utils/date";
 
 function exerciseGrowthPct(progressLog, exerciseId) {
@@ -27,18 +26,10 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { group, loading: groupLoading, notInGroup } = useGroup();
   const { current, next, progress } = useCharacter();
-  const { heightCm, latestWeightKg, weightLog } = useProfile();
 
   const gymHabit = habits.find((h) => h.type === "gym");
   const streak = gymHabit ? currentStreak(gymHabit.checksByDate, today) : 0;
   const totalWorkouts = progressLog.length;
-
-  // Evolución de peso: delta entre el primer y el último registro cargado —
-  // null si todavía no hay al menos dos para comparar.
-  const weightGrowthKg =
-    weightLog.length >= 2
-      ? Number((weightLog[weightLog.length - 1].weightKg - weightLog[0].weightKg).toFixed(1))
-      : null;
 
   const bestExercises = exercises
     .map((ex) => ({ ...ex, growthPct: exerciseGrowthPct(progressLog, ex.id) }))
@@ -53,13 +44,12 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Dashboard"
-        title={`Hola, ${user.name}`}
-        description="Esta es la entrada a todo lo trabajado: tu Power Level, tu progreso real y tu grupo, todo en un solo lugar."
-      />
+      <PageHeader eyebrow="Dashboard" title={`Hola, ${user.name}`} />
 
-      {/* Hero — Vegeta completo + Power Level, el punto de entrada visual */}
+      {/* Hero — Vegeta completo + Power Level, el punto de entrada visual.
+          Fase 0 P1: recortado a hero + 3 datos de resumen + un solo CTA —
+          antes tenía 6 StatPills compitiendo por atención (peso/altura/
+          evolución pasan a vivir en Personaje/Estadísticas, no acá). */}
       <Card className="relative mb-6 flex flex-col gap-8 overflow-hidden py-8 lg:flex-row lg:items-center">
         <div className="scanlines" />
         <div className="flex flex-col items-center gap-4 text-center lg:items-start lg:text-left">
@@ -83,19 +73,17 @@ export default function Dashboard() {
           <div className="mt-6">
             <PowerReader value={powerLevel} />
           </div>
+          <div className="mt-6">
+            <Button to="/entrenamiento" size="lg">
+              Entrenar ahora
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-1 lg:w-56">
+        <div className="grid grid-cols-3 gap-4 lg:w-56 lg:grid-cols-1">
           <StatPill label="Racha activa" value={streak} suffix=" días" />
           <StatPill label="Entrenos totales" value={totalWorkouts} />
           <StatPill label="PR press banca" value={benchKg} suffix=" kg" />
-          <StatPill label="Peso corporal" value={latestWeightKg ?? "Sin datos"} suffix={latestWeightKg ? " kg" : ""} />
-          <StatPill label="Altura" value={heightCm ?? "Sin datos"} suffix={heightCm ? " cm" : ""} />
-          <StatPill
-            label="Evolución de peso"
-            value={weightGrowthKg === null ? "Sin datos" : weightGrowthKg > 0 ? `+${weightGrowthKg}` : `${weightGrowthKg}`}
-            suffix={weightGrowthKg === null ? "" : " kg"}
-          />
         </div>
       </Card>
 
