@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, PageHeader, Tag } from "../components/ui";
+import { Plus, Minus } from "lucide-react";
 import { fireConfetti } from "../utils/confetti";
 import { notifyPR } from "../utils/notify";
 import { useWorkoutSession } from "../context/WorkoutSessionContext";
@@ -72,6 +73,49 @@ function SessionSummary({ summary, onDone }) {
       >
         Volver a Rutinas
       </button>
+    </div>
+  );
+}
+
+// Input numérico con +/- grandes — esta pantalla se usa con una sola mano,
+// a media serie, a veces con las manos transpiradas. Tocar un botón de
+// 44px+ para sumar/restar es mucho más confiable que apuntarle al teclado
+// numérico del celular para escribir "82.5".
+function NumberStepper({ label, value, onChange, step, min = 0, placeholder }) {
+  function bump(delta) {
+    const current = Number(value) || 0;
+    const next = Math.max(min, Math.round((current + delta) * 100) / 100);
+    onChange(String(next));
+  }
+  return (
+    <div className="flex-1 min-w-[104px]">
+      <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-widest2 text-muted">{label}</label>
+      <div className="flex items-stretch border border-maroon/20">
+        <button
+          type="button"
+          onClick={() => bump(-step)}
+          aria-label={`Restar ${label}`}
+          className="flex w-11 shrink-0 items-center justify-center text-maroon hover:bg-maroon/10 active:bg-maroon/20"
+        >
+          <Minus size={16} />
+        </button>
+        <input
+          type="number"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full min-w-0 border-x border-maroon/20 bg-transparent px-1 py-3 text-center font-mono text-lg outline-none focus:bg-maroon/5"
+        />
+        <button
+          type="button"
+          onClick={() => bump(step)}
+          aria-label={`Sumar ${label}`}
+          className="flex w-11 shrink-0 items-center justify-center text-maroon hover:bg-maroon/10 active:bg-maroon/20"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -421,43 +465,20 @@ export default function WorkoutSession() {
             )}
 
             {!isFinished && !isCurrentLocked && (
-              <div className="flex flex-wrap items-end gap-2 border-t border-maroon/10 pt-4">
-                <div>
-                  <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest2 text-muted">Peso (kg)</label>
-                  <input
-                    type="number"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    className="w-24 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                  />
+              <div className="border-t border-maroon/10 pt-4">
+                <div className="flex flex-wrap gap-2">
+                  <NumberStepper label="Peso (kg)" value={weight} onChange={setWeight} step={2.5} placeholder="0" />
+                  <NumberStepper label="Reps" value={reps} onChange={setReps} step={1} placeholder="0" />
+                  <NumberStepper label="RPE (opcional)" value={rpe} onChange={setRpe} step={0.5} min={0} placeholder="—" />
                 </div>
-                <div>
-                  <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest2 text-muted">Reps</label>
-                  <input
-                    type="number"
-                    value={reps}
-                    onChange={(e) => setReps(e.target.value)}
-                    className="w-20 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest2 text-muted">RPE (opcional)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={rpe}
-                    onChange={(e) => setRpe(e.target.value)}
-                    className="w-20 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                  />
-                </div>
-                <label className="mb-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest2 text-muted">
-                  <input type="checkbox" checked={isWarmup} onChange={(e) => setIsWarmup(e.target.checked)} />
+                <label className="mt-3 flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest2 text-muted">
+                  <input type="checkbox" checked={isWarmup} onChange={(e) => setIsWarmup(e.target.checked)} className="h-4 w-4 accent-maroon" />
                   Calentamiento
                 </label>
                 <button
                   onClick={handleConfirmSet}
                   disabled={saving}
-                  className="bg-maroon px-4 py-2 font-mono text-xs uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250 disabled:opacity-50"
+                  className="mt-3 w-full bg-maroon px-4 py-4 font-mono text-sm uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250 disabled:opacity-50 sm:w-auto sm:px-8"
                 >
                   Confirmar serie
                 </button>

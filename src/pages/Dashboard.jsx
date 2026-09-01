@@ -101,35 +101,12 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* Resumen del día — misma info que antes vivía en StatPills adentro
-          del hero, ahora en su propia fila con ícono por dato. */}
-      <div className="mb-8">
-        <p className="eyebrow mb-4">Resumen del día</p>
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="flex flex-col items-center gap-1 py-4 text-center">
-            <Flame size={18} className="text-danger" />
-            <p className="font-mono text-xl font-semibold text-ink">{streak}</p>
-            <p className="eyebrow">Racha</p>
-          </Card>
-          <Card className="flex flex-col items-center gap-1 py-4 text-center">
-            <Trophy size={18} className="text-gold" />
-            <p className="font-mono text-xl font-semibold text-ink">{benchKg}</p>
-            <p className="eyebrow">PR banca</p>
-          </Card>
-          <Card className="flex flex-col items-center gap-1 py-4 text-center">
-            <Dumbbell size={18} className="text-teal" />
-            <p className="font-mono text-xl font-semibold text-ink">{totalWorkouts}</p>
-            <p className="eyebrow">Entrenos</p>
-          </Card>
-        </div>
-      </div>
-
-      {/* Próxima misión — la rutina programada más cercana, con acceso
-          directo a Rutinas. Si no hay ninguna cargada, la sección no se
-          muestra (no hay nada que mostrar, no es un estado de error). */}
+      {/* FEATURE 1 — Próxima misión: la respuesta a "¿qué tengo que hacer?",
+          por eso va primera después del hero. Sigue siendo Card (feature),
+          no hero. */}
       {nextMission && (
-        <div className="mb-10">
-          <p className="eyebrow mb-4">Próxima misión</p>
+        <div className="mb-6">
+          <p className="eyebrow mb-3">Próxima misión</p>
           <Link to="/rutinas">
             <Card className="flex items-center gap-4">
               <div className="min-w-0 flex-1">
@@ -149,10 +126,36 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="mb-10 grid gap-6 lg:grid-cols-2">
-        {/* Mejores ejercicios */}
-        <Card>
-          <p className="eyebrow mb-4">Mejores ejercicios</p>
+      {/* FEATURE 2 — Resumen del día: "¿cómo estoy?" en un solo bloque en vez
+          de 3 cards sueltas — Fase 0 P1 cierre visual, menos cajas, misma
+          info. */}
+      <div className="mb-10">
+        <p className="eyebrow mb-3">Resumen del día</p>
+        <Card className="grid grid-cols-3 divide-x divide-line/60">
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Flame size={18} className="text-danger" />
+            <p className="font-mono text-xl font-semibold text-ink">{streak}</p>
+            <p className="eyebrow">Racha</p>
+          </div>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Trophy size={18} className="text-gold" />
+            <p className="font-mono text-xl font-semibold text-ink">{benchKg}</p>
+            <p className="eyebrow">PR banca</p>
+          </div>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Dumbbell size={18} className="text-teal" />
+            <p className="font-mono text-xl font-semibold text-ink">{totalWorkouts}</p>
+            <p className="eyebrow">Entrenos</p>
+          </div>
+        </Card>
+      </div>
+
+      {/* UTILITY — mejores ejercicios + grupo: información real pero
+          secundaria frente al hero/features de arriba. Filas simples con
+          separador, sin card pesada (sin fondo/borde/sombra propios). */}
+      <div className="grid gap-8 lg:grid-cols-2">
+        <div>
+          <p className="eyebrow mb-3">Mejores ejercicios</p>
           {bestExercises.length === 0 ? (
             <p className="text-sm text-muted">
               Todavía no hay suficientes marcas. Cargá progreso en{" "}
@@ -162,14 +165,14 @@ export default function Dashboard() {
               .
             </p>
           ) : (
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col">
               {bestExercises.map((ex, i) => (
                 <motion.li
                   key={ex.id}
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.08, duration: 0.3, ease: "easeOut" }}
-                  className="flex items-center justify-between border-b border-ink/10 pb-3 last:border-none"
+                  className="flex items-center justify-between border-b border-line/60 py-3 first:pt-0 last:border-none"
                 >
                   <div>
                     <p className="text-sm font-semibold">{ex.name}</p>
@@ -182,23 +185,22 @@ export default function Dashboard() {
               ))}
             </ul>
           )}
-        </Card>
+        </div>
 
-        {/* En qué grupo estoy */}
-        <Card>
+        <div>
           {groupLoading ? (
             <p className="text-sm text-muted">Cargando tu grupo...</p>
           ) : notInGroup || !group || !goal || !groupLeader ? (
             <p className="text-sm text-muted">Todavía no pertenecés a ningún grupo.</p>
           ) : (
             <>
-              <p className="eyebrow mb-4">Tu grupo — {group.name}</p>
+              <p className="eyebrow mb-3">Tu grupo — {group.name}</p>
               <p className="text-sm font-semibold">{goal.title}</p>
               <p className="mb-3 font-mono text-xs text-muted">
                 Premio: {goal.prize} · meta {goal.targetKg}kg en {goal.exerciseLabel.toLowerCase()}
               </p>
               <ProgressBar progress={goal.targetKg ? Math.min(1, groupLeader[goal.exercise] / goal.targetKg) : 0} />
-              <p className="mt-4 eyebrow mb-2">Va ganando</p>
+              <p className="mt-4 eyebrow mb-1">Va ganando</p>
               <p className="text-sm">
                 <span className="font-semibold text-maroon">{groupLeader.name}</span> con {groupLeader[goal.exercise]}kg en{" "}
                 {goal.exerciseLabel.toLowerCase()}
@@ -208,7 +210,7 @@ export default function Dashboard() {
               </Link>
             </>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );

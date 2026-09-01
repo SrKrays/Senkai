@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import useEmblaCarousel from "embla-carousel-react";
-import { Dumbbell, CheckSquare } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import { PageHeader, Card, Tag, CharacterHero } from "../components/ui";
 import CharacterFlipbook from "../components/CharacterFlipbook";
 import { vegetaTraining } from "../data/mockData";
@@ -237,6 +236,13 @@ export default function Routines() {
   const vegetaStage = getVegetaTrainingStage(daysTrainedThisWeek);
   const weekProgress = Math.min(1, daysTrainedThisWeek / (vegetaTraining.length - 1));
 
+  // CTA principal del Hero (brief Fase 0 P1 cierre): "¿qué tengo que hacer
+  // hoy?" tiene que responderse desde el Hero mismo, no solo escondido dentro
+  // de cada card de rutina. Misma acción real (handleStartSession) que ya
+  // usa el botón "Entrenar" de cada card — esto solo la sube de lugar para
+  // la rutina de hoy, no crea un camino nuevo.
+  const todaysRoutine = routines.find((r) => r.daysOfWeek.includes(todayIdx)) ?? null;
+
   function toggleExpand(id) {
     setExpandedId((prev) => (prev === id ? null : id));
     setEditingExId(null);
@@ -455,14 +461,38 @@ export default function Routines() {
       )}
 
       {/* Hero — Vegeta, primero en el DOM (antes vivía en una columna
-          lateral que en mobile quedaba al fondo de la pantalla). */}
+          lateral que en mobile quedaba al fondo de la pantalla). La rutina
+          de hoy y su CTA real viven acá adentro — es la respuesta a
+          "¿qué tengo que hacer ahora?", no algo que haya que buscar dentro
+          de una card de rutina entre varias. */}
       <CharacterHero
         eyebrow={`${daysTrainedThisWeek} día(s) entrenados esta semana`}
         name={vegetaStage.tag}
         tone="teal"
         progress={weekProgress}
         art={<CharacterFlipbook frames={vegetaTraining.map((s) => s.img)} alt="Vegeta entrenando" width={140} height={140} />}
-      />
+      >
+        {todaysRoutine ? (
+          <div className="flex flex-col items-center gap-2 sm:items-start">
+            <p className="font-mono text-xs text-muted">
+              Hoy toca: <span className="text-ink">{todaysRoutine.name}</span> · {todaysRoutine.exercises.length} ejercicios
+            </p>
+            <button
+              onClick={() => handleStartSession(todaysRoutine.id)}
+              disabled={startingId === todaysRoutine.id || (activeSession && activeSession.routineId !== todaysRoutine.id)}
+              className="bg-maroon px-4 py-2.5 font-mono text-xs uppercase tracking-widest2 text-paper transition-all duration-250 hover:opacity-90 hover:shadow-glow disabled:opacity-50"
+            >
+              {activeSession && activeSession.routineId === todaysRoutine.id
+                ? "Continuar sesión"
+                : startingId === todaysRoutine.id
+                ? "..."
+                : "Comenzar entrenamiento"}
+            </button>
+          </div>
+        ) : (
+          <p className="font-mono text-xs text-muted">Sin rutina programada para hoy.</p>
+        )}
+      </CharacterHero>
 
       {/* Confirmación de entreno del día — independiente de si cargaste una
           marca nueva en Entrenamiento (no todo día de gym deja un PR). Suma
@@ -501,26 +531,6 @@ export default function Routines() {
         </Card>
       )}
 
-      {/* Recordatorios rápidos a las otras secciones */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2">
-        <Link
-          to="/entrenamiento"
-          className="hud flex items-center gap-2 border border-maroon/25 bg-card px-4 py-3 text-sm hover:bg-maroon/5"
-        >
-          <Dumbbell size={16} className="shrink-0 text-maroon" />
-          <span className="flex-1">Registrá tu marca de hoy</span>
-          <span className="font-mono text-xs text-maroon">→</span>
-        </Link>
-        <Link
-          to="/tracker"
-          className="hud flex items-center gap-2 border border-maroon/25 bg-card px-4 py-3 text-sm hover:bg-maroon/5"
-        >
-          <CheckSquare size={16} className="shrink-0 text-maroon" />
-          <span className="flex-1">Marcá el día en el Tracker</span>
-          <span className="font-mono text-xs text-maroon">→</span>
-        </Link>
-      </div>
-
       {/* Calendario semanal — rediseñado: la tira de arriba solo tiene que
           decir "qué día es" y "hay algo ese día", así nunca depende de que
           un nombre de rutina largo entre en una celda de 45px. El detalle
@@ -528,13 +538,15 @@ export default function Routines() {
           para el día que tengas seleccionado (por default, hoy). El
           carrusel usa embla-carousel-react para el swipe táctil — misma
           librería que usa shadcn/ui, la sumamos liviana solo para esto. */}
-      <Card className="mb-8">
+      {/* UTILITY (brief: "calendario, historial y detalles") — deja de ser
+          Card propia, es información de apoyo, no un feature. */}
+      <div className="mb-8 border-t border-line pt-5">
         <div className="mb-4 flex items-center justify-between">
           <p className="eyebrow text-maroon">Calendario de la semana</p>
           <p className="font-mono text-xs text-muted">Entrenás {weeklyDaysUsed} día(s) por semana</p>
         </div>
 
-        <div className="-mx-5 overflow-hidden px-5" ref={emblaRef}>
+        <div className="overflow-hidden" ref={emblaRef}>
           <div className="flex gap-2">
             {weekDates.map((d, i) => {
               const dayRoutines = routines.filter((r) => r.daysOfWeek.includes(i));
@@ -602,7 +614,7 @@ export default function Routines() {
             </div>
           );
         })()}
-      </Card>
+      </div>
 
       {/* Rutinas — clickeables, se expanden para editar días y ejercicios */}
       {routinesLoading ? (
@@ -687,7 +699,7 @@ export default function Routines() {
                         title="Editar rutina"
                         className="text-muted hover:text-maroon"
                       >
-                        ✎
+                        <Pencil size={14} />
                       </button>
                       <button
                         onClick={(e) => {
@@ -698,7 +710,7 @@ export default function Routines() {
                         title="Borrar rutina"
                         className="text-muted hover:text-maroon"
                       >
-                        ✕
+                        <X size={14} />
                       </button>
                     </div>
                   </div>
@@ -798,7 +810,7 @@ export default function Routines() {
                                   title="Editar"
                                   className="text-muted hover:text-maroon"
                                 >
-                                  ✎
+                                  <Pencil size={13} />
                                 </button>
                                 <button
                                   onClick={() => deleteExercise(r.id, ex.id)}
@@ -806,7 +818,7 @@ export default function Routines() {
                                   title="Borrar"
                                   className="text-muted hover:text-maroon"
                                 >
-                                  ✕
+                                  <X size={13} />
                                 </button>
                               </span>
                             )}

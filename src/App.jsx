@@ -19,7 +19,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Tracker from "./pages/Tracker";
-import Character from "./pages/Character";
 import Training from "./pages/Training";
 import Routines from "./pages/Routines";
 import WorkoutSession from "./pages/WorkoutSession";
@@ -57,7 +56,6 @@ export default function App() {
                         >
                           <Route path="/" element={<Dashboard />} />
                           <Route path="/tracker" element={<Tracker />} />
-                          <Route path="/personaje" element={<Character />} />
                           <Route path="/entrenamiento" element={<Training />} />
                           <Route path="/rutinas" element={<Routines />} />
                           <Route path="/rutinas/sesion/:id" element={<WorkoutSession />} />

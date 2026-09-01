@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Home,
   CheckSquare,
-  Sparkles,
   Dumbbell,
   CalendarDays,
   UtensilsCrossed,
@@ -41,14 +40,13 @@ import { useAuth } from "../context/AuthContext";
 const nav = [
   { to: "/", label: "Dashboard", short: "Inicio", icon: Home, num: "00", primary: true },
   { to: "/tracker", label: "Tracker de Hábitos", short: "Hábitos", icon: CheckSquare, num: "01" },
-  { to: "/personaje", label: "Personaje", short: "Personaje", icon: Sparkles, num: "02" },
-  { to: "/entrenamiento", label: "Entrenamiento", short: "Entreno", icon: Dumbbell, num: "03", primary: true },
-  { to: "/rutinas", label: "Rutinas", short: "Rutinas", icon: CalendarDays, num: "04", primary: true },
-  { to: "/nutricion", label: "Nutrición", short: "Nutrición", icon: UtensilsCrossed, num: "05", primary: true },
-  { to: "/suplementacion", label: "Suplementación", short: "Suplem.", icon: Pill, num: "06" },
-  { to: "/grupos", label: "Grupos", short: "Grupos", icon: Users, num: "07", primary: true },
-  { to: "/estadisticas", label: "Objetivos y Estadísticas", short: "Objetivos", icon: BarChart3, num: "08" },
-  { to: "/personalizacion", label: "User", short: "Perfil", icon: Settings, num: "09" },
+  { to: "/entrenamiento", label: "Entrenamiento", short: "Entreno", icon: Dumbbell, num: "02", primary: true },
+  { to: "/rutinas", label: "Rutinas", short: "Rutinas", icon: CalendarDays, num: "03", primary: true },
+  { to: "/nutricion", label: "Nutrición", short: "Nutrición", icon: UtensilsCrossed, num: "04", primary: true },
+  { to: "/suplementacion", label: "Suplementación", short: "Suplem.", icon: Pill, num: "05" },
+  { to: "/grupos", label: "Grupos", short: "Grupos", icon: Users, num: "06", primary: true },
+  { to: "/estadisticas", label: "Objetivos y Estadísticas", short: "Objetivos", icon: BarChart3, num: "07" },
+  { to: "/personalizacion", label: "User", short: "Perfil", icon: Settings, num: "08" },
 ];
 
 export default function Layout() {

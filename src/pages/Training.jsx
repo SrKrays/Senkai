@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ChevronRight, ChevronDown, Dumbbell } from "lucide-react";
+import { ChevronRight, ChevronDown, Dumbbell, Pencil, X } from "lucide-react";
 import { PageHeader, Card, Tag, CharacterHero, CharacterArt } from "../components/ui";
 import ExerciseGifPreview from "../components/ExerciseGifPreview";
 import { useTraining } from "../context/TrainingContext";
@@ -321,13 +321,16 @@ export default function Training() {
           <p className="max-w-sm text-sm text-muted">Agregá al menos uno arriba para empezar a registrar marcas.</p>
         </Card>
       ) : (
-        <div className="flex flex-col gap-2">
+        // UTILITY — antes cada ejercicio era su propia Card (borde + fondo +
+        // sombra propios apilados N veces). Un solo contenedor con filas
+        // separadas por divisor se lee como lista, no como pila de cajas.
+        <div className="hud divide-y divide-line/70 border border-line">
           {exercises.map((ex) => {
             const isOpen = expandedId === ex.id;
             const marks = progressLog.filter((p) => p.exerciseId === ex.id).sort((a, b) => b.date.localeCompare(a.date));
             const lastMark = marks[0];
             return (
-              <Card key={ex.id} className="flex flex-col gap-0 !p-0">
+              <div key={ex.id}>
                 <button
                   onClick={() => toggleExpand(ex.id)}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left"
@@ -467,7 +470,7 @@ export default function Training() {
                                     title="Editar"
                                     className="text-muted hover:text-maroon"
                                   >
-                                    ✎
+                                    <Pencil size={14} />
                                   </button>
                                   <button
                                     onClick={() => handleDeleteMark(m.id)}
@@ -475,7 +478,7 @@ export default function Training() {
                                     title="Borrar"
                                     className="text-muted hover:text-maroon"
                                   >
-                                    ✕
+                                    <X size={14} />
                                   </button>
                                 </span>
                               </div>
@@ -486,7 +489,7 @@ export default function Training() {
                     )}
                   </div>
                 )}
-              </Card>
+              </div>
             );
           })}
         </div>

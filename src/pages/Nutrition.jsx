@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Pencil, X } from "lucide-react";
 import { PageHeader, Card, ProgressBar, Tag, CharacterHero } from "../components/ui";
 import CharacterFlipbook from "../components/CharacterFlipbook";
 import { useNutrition } from "../context/NutritionContext";
@@ -122,7 +123,7 @@ function MealSlotCard({
             title="Renombrar división"
             className="text-muted hover:text-maroon"
           >
-            ✎
+            <Pencil size={14} />
           </button>
           <button
             onClick={() => onDeleteSlot(slot.id)}
@@ -130,7 +131,7 @@ function MealSlotCard({
             title="Borrar división"
             className="text-muted hover:text-maroon"
           >
-            ✕
+            <X size={14} />
           </button>
         </span>
       </div>
@@ -483,13 +484,14 @@ export default function Nutrition() {
         </div>
       )}
 
-      <Card className="mt-6">
+      {/* UTILITY — dato secundario, ya no necesita su propia Card. */}
+      <div className="mt-8 border-t border-line pt-4">
         <div className="mb-2 flex items-baseline justify-between">
           <p className="eyebrow text-maroon">Progreso mensual</p>
           <p className="font-mono text-xs text-muted">{Math.round(nutritionScore * 100)}%</p>
         </div>
         <ProgressBar progress={nutritionScore} />
-      </Card>
+      </div>
     </div>
   );
 }

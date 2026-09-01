@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Trophy, Flame, Dumbbell, Award, UtensilsCrossed } from "lucide-react";
+import { Trophy, Flame, Dumbbell, Award, UtensilsCrossed, X } from "lucide-react";
 import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
 import { useTracker } from "../context/TrackerContext";
 import { useTraining } from "../context/TrainingContext";
@@ -67,7 +67,7 @@ function ObjectiveGrid({ goals, onDelete }) {
                 title="Borrar"
                 className="text-muted hover:text-maroon"
               >
-                ✕
+                <X size={14} />
               </button>
             </span>
           </div>

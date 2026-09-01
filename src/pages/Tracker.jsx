@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
+import { CheckSquare, Target, Dumbbell, UtensilsCrossed, Pill, Pencil, X } from "lucide-react";
+import { PageHeader, Card, ProgressBar, CharacterArt, CharacterHero } from "../components/ui";
 import { useTracker } from "../context/TrackerContext";
 import { useTraining } from "../context/TrainingContext";
 import { useNutrition } from "../context/NutritionContext";
@@ -19,7 +20,6 @@ export default function Tracker() {
     notes,
     today,
     monthly,
-    trackerScore,
     toggleCheck,
     addHabit,
     updateHabit,
@@ -123,61 +123,55 @@ export default function Tracker() {
     <div>
       <PageHeader eyebrow="Tracker · Personal" title="Tracker de Hábitos" description="Marcá tus días. Es individual, no se comparte." />
 
-      {/* Evolución de Vegeta — combina hábitos+objetivos (Tracker) y marcas (Entrenamiento) */}
-      <Card className="mb-8 flex flex-col gap-8 py-10 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
-          <CharacterArt src={current.img} alt={current.name} size={168} />
-          <div>
-            <p className="eyebrow mb-1">Etapa actual · Power Level {powerLevel.toLocaleString("es-AR")}</p>
-            <h2 className="font-display text-5xl tracking-wide text-maroon">{current.name}</h2>
-            <Tag tone="teal">{current.tag}</Tag>
+      {/* Hero — mismo patrón que el resto de las secciones (Nutrición,
+          Rutinas, Entrenamiento, Suplementación), no ya el card grande a
+          medida que tenía antes. El desglose de los 5 componentes del Power
+          Level pasa a su propia fila de abajo (íconos, no texto largo
+          apilado) — eso era lo que se pisaba en mobile. */}
+      <CharacterHero
+        eyebrow={`Power Level ${powerLevel.toLocaleString("es-AR")}`}
+        name={current.name}
+        tag={current.tag}
+        tone="maroon"
+        progress={progress}
+        art={<CharacterArt src={current.img} alt={current.name} width={110} height={150} />}
+      >
+        <p className="font-mono text-[10px] text-muted">
+          {next
+            ? `Próxima etapa: ${next.name} · faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts`
+            : "Nivel máximo alcanzado"}
+        </p>
+      </CharacterHero>
 
-            <div className="mt-5 grid max-w-md grid-cols-2 gap-3 sm:grid-cols-5">
-              <div>
-                <p className="font-mono text-lg font-semibold text-maroon">
-                  {Math.round(monthly.daysComponent * 100)}%
-                </p>
-                <p className="eyebrow">Hábitos</p>
-              </div>
-              <div>
-                <p className="font-mono text-lg font-semibold text-maroon">
-                  {Math.round(monthly.objectivesComponent * 100)}%
-                </p>
-                <p className="eyebrow">Objetivos</p>
-              </div>
-              <div>
-                <p className="font-mono text-lg font-semibold text-maroon">{Math.round(trainingScore * 100)}%</p>
-                <p className="eyebrow">Entrenamiento</p>
-              </div>
-              <div>
-                <p className="font-mono text-lg font-semibold text-maroon">{Math.round(nutritionScore * 100)}%</p>
-                <p className="eyebrow">Nutrición</p>
-              </div>
-              <div>
-                <p className="font-mono text-lg font-semibold text-maroon">
-                  {Math.round(supplementationScore * 100)}%
-                </p>
-                <p className="eyebrow">Suplementos</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="w-full max-w-xs">
-          <p className="mb-2 font-mono text-xs text-muted">
-            {next
-              ? `Próxima: ${next.name} en ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts`
-              : "Nivel máximo alcanzado"}
-          </p>
-          <ProgressBar progress={progress} tone="teal" />
-        </div>
-      </Card>
-
-      <p className="mb-8 text-xs text-muted">
-        * El arte de cada etapa se sube en{" "}
-        <span className="font-semibold text-maroon">Personalización</span> / carpeta{" "}
-        <code className="font-mono">public/characters</code>. No podemos generar arte con personajes
-        registrados de Dragon Ball.
-      </p>
+      {/* Los 5 componentes que arman el Power Level — ícono + %, sin
+          etiqueta larga apilada abajo (eso era lo que se pisaba en mobile). */}
+      <div className="mb-8 grid grid-cols-3 gap-3 sm:grid-cols-5">
+        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+          <CheckSquare size={18} className="text-maroon" />
+          <p className="font-mono text-lg font-semibold text-ink">{Math.round(monthly.daysComponent * 100)}%</p>
+          <p className="eyebrow">Hábitos</p>
+        </Card>
+        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+          <Target size={18} className="text-gold" />
+          <p className="font-mono text-lg font-semibold text-ink">{Math.round(monthly.objectivesComponent * 100)}%</p>
+          <p className="eyebrow">Objetivos</p>
+        </Card>
+        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+          <Dumbbell size={18} className="text-teal" />
+          <p className="font-mono text-lg font-semibold text-ink">{Math.round(trainingScore * 100)}%</p>
+          <p className="eyebrow">Entreno</p>
+        </Card>
+        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+          <UtensilsCrossed size={18} className="text-maroon" />
+          <p className="font-mono text-lg font-semibold text-ink">{Math.round(nutritionScore * 100)}%</p>
+          <p className="eyebrow">Nutrición</p>
+        </Card>
+        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+          <Pill size={18} className="text-gold" />
+          <p className="font-mono text-lg font-semibold text-ink">{Math.round(supplementationScore * 100)}%</p>
+          <p className="eyebrow">Suplementos</p>
+        </Card>
+      </div>
 
       {/* Contador mensual — barra grande, 0 a 100% semana a semana + objetivos */}
       <Card className="mb-8 py-8">
@@ -216,9 +210,12 @@ export default function Tracker() {
         )}
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        {/* Grilla de hábitos estilo planilla — navegable semana a semana */}
-        <div>
+      {/* Grilla de hábitos — antes vivía en un split xl:grid-cols-[1fr_320px]
+          con "Objetivos y notas" al lado; en mobile eso hacía que esa
+          sección (que tiene alta/edición/borrado, no es un dato de paso)
+          cayera hasta el final de la página. Ahora todo fluye en una sola
+          columna, hábitos primero por ser lo que se usa a diario. */}
+      <div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button
@@ -359,7 +356,7 @@ export default function Tracker() {
                             className="text-muted hover:text-maroon"
                             title="Editar"
                           >
-                            ✎
+                            <Pencil size={14} />
                           </button>
                           <button
                             onClick={() => handleDeleteHabit(h.id)}
@@ -367,7 +364,7 @@ export default function Tracker() {
                             className="text-muted hover:text-maroon"
                             title="Borrar"
                           >
-                            ✕
+                            <X size={14} />
                           </button>
                         </span>
                       </div>
@@ -482,7 +479,7 @@ export default function Tracker() {
                         className="text-muted hover:text-maroon"
                         title="Editar"
                       >
-                        ✎
+                        <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => handleDeleteNote(n.id)}
@@ -490,7 +487,7 @@ export default function Tracker() {
                         className="text-muted hover:text-maroon"
                         title="Borrar"
                       >
-                        ✕
+                        <X size={14} />
                       </button>
                     </div>
                   )}
@@ -515,7 +512,6 @@ export default function Tracker() {
             </div>
           </Card>
         </div>
-      </div>
     </div>
   );
 }
