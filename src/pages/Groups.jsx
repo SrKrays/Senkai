@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Crown, Medal, Copy, Check, Trophy, ChevronRight } from "lucide-react";
+import { Crown, Medal, Copy, Check, Trophy, ChevronRight, Dumbbell, Pill, UtensilsCrossed } from "lucide-react";
 import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
 import CountUp from "../components/CountUp";
 import ImagePrizeUploader from "../components/ImagePrizeUploader";
@@ -617,66 +617,65 @@ export default function Groups() {
             </Card>
           )}
 
-          {/* Mini-cards de cada integrante — ranking, imagen ajustada, Power Level + pilares */}
+          {/* Escuadrón — antes eran cards grandes con foto (130px) + una
+              grilla de 3 columnas de texto que en mobile no tenía espacio
+              y el texto de los pilares se pisaba entre sí. Mismo formato de
+              lista que Ranking/Actividad ahora: una fila por integrante,
+              avatar chico, Power Level a la derecha, y los 3 pilares abajo
+              como íconos + % (sin texto largo que pueda desbordar). */}
           <p className="eyebrow mb-4">Escuadrón</p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <Card className="mb-8 flex flex-col gap-1">
             {ranked.map((m, i) => {
               const { current: stage } = getVegetaStage(m.powerLevel, vegetaEvolution);
-              const rank = i + 1;
-              const medal = RANK_MEDALS[rank];
+              const medal = RANK_MEDALS[i + 1];
               return (
-                <Card
-                  key={m.userId}
+                <motion.div
                   layout
+                  key={m.userId}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.06, duration: 0.3, ease: "easeOut", layout: { duration: 0.5, ease: "easeInOut" } }}
-                  className="relative flex gap-4"
+                  className="flex flex-col gap-2 border-b border-line py-3 first:pt-1 last:border-none last:pb-1"
                 >
-                  <span
-                    className={`absolute -left-1.5 -top-1.5 z-20 flex flex-col items-center justify-center gap-0.5 rounded-sm border-2 bg-card font-mono font-bold ${
-                      medal ? `h-11 w-8 ${medal.cls}` : "h-8 w-7 border-line text-muted text-sm"
-                    }`}
-                    title={medal ? medal.label : `Puesto ${rank}`}
-                  >
-                    {medal && <medal.icon size={13} strokeWidth={2.5} />}
-                    <span className={medal ? "text-xs leading-none" : ""}>{rank}</span>
-                  </span>
-                  <CharacterArt src={stage.img} alt={`${m.name} — ${stage.name}`} width={130} height={200} />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold">{m.name}</p>
-                    <p className="mb-3 font-mono text-xs text-muted">{stage.name}</p>
-
-                    <div className="hud mb-3 flex items-baseline justify-between border border-line bg-paper px-3 py-2">
-                      <div>
-                        <p className="eyebrow mb-0.5">Power Level</p>
-                        <CountUp
-                          value={m.powerLevel}
-                          className="neon-text font-mono text-xl font-semibold text-maroon-light"
-                        />
-                      </div>
-                      <span className="neon-text-teal font-mono text-xs font-semibold text-teal-light">
-                        {m.weeklyDelta > 0 ? `↑ +${m.weeklyDelta.toLocaleString("es-AR")}` : "sin cambios (7d)"}
-                      </span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold ${
+                        medal ? medal.cls : "border border-line text-muted"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                    <img
+                      src={stage.img}
+                      alt={m.name}
+                      className="h-10 w-10 shrink-0 rounded-full border border-line object-cover object-top"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{m.name}</p>
+                      <p className="truncate font-mono text-[10px] text-muted">{stage.name}</p>
                     </div>
-
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div>
-                        <p className="font-mono text-sm font-semibold text-ink">{Math.round(m.trainingPct * 100)}%</p>
-                        <p className="eyebrow">Ejercicio</p>
-                      </div>
-                      <div>
-                        <p className="font-mono text-sm font-semibold text-ink">{Math.round(m.supplementPct * 100)}%</p>
-                        <p className="eyebrow">Suplemento</p>
-                      </div>
-                      <div>
-                        <p className="font-mono text-sm font-semibold text-ink">{Math.round(m.nutritionPct * 100)}%</p>
-                        <p className="eyebrow">Alimentación</p>
-                      </div>
+                    <div className="shrink-0 text-right">
+                      <CountUp value={m.powerLevel} className="font-mono text-sm font-semibold text-maroon-light" />
+                      {m.weeklyDelta > 0 && (
+                        <p className="font-mono text-[9px] text-teal-light">+{m.weeklyDelta.toLocaleString("es-AR")}</p>
+                      )}
                     </div>
                   </div>
-                </Card>
+                  <div className="ml-[52px] flex gap-4">
+                    <span title="Ejercicio" className="flex items-center gap-1 font-mono text-[10px] text-muted">
+                      <Dumbbell size={12} className="text-teal" /> {Math.round(m.trainingPct * 100)}%
+                    </span>
+                    <span title="Suplemento" className="flex items-center gap-1 font-mono text-[10px] text-muted">
+                      <Pill size={12} className="text-gold" /> {Math.round(m.supplementPct * 100)}%
+                    </span>
+                    <span title="Alimentación" className="flex items-center gap-1 font-mono text-[10px] text-muted">
+                      <UtensilsCrossed size={12} className="text-maroon" /> {Math.round(m.nutritionPct * 100)}%
+                    </span>
+                  </div>
+                </motion.div>
               );
             })}
-          </div>
+          </Card>
         </div>
 
         <div className="flex flex-col gap-6">
