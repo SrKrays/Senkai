@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Crown, Medal, Copy, Check } from "lucide-react";
+import { Crown, Medal, Copy, Check, Trophy, ChevronRight } from "lucide-react";
 import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
 import CountUp from "../components/CountUp";
 import ImagePrizeUploader from "../components/ImagePrizeUploader";
@@ -363,13 +363,18 @@ export default function Groups() {
 
   return (
     <div>
+      {/* Identidad propia de Grupos: rojo (danger real), no el lima de
+          "maroon" — es la sección de competencia/desafío, se lee distinto
+          a propósito. Sin personaje fijo (a diferencia de Nutrición/
+          Rutinas), así que el acento de color hace ese trabajo acá. */}
       <PageHeader
         eyebrow="Grupos"
-        title={group.name}
+        title={<span className="text-danger">{group.name}</span>}
+        description="Compitiendo juntos, un entrenamiento a la vez."
         action={
           <button
             onClick={() => setShowSwitchPanel((v) => !v)}
-            className="border border-maroon/40 px-4 py-2 font-mono text-xs uppercase tracking-widest2 text-maroon transition-all duration-250 hover:bg-maroon hover:text-paper hover:shadow-glow"
+            className="border border-danger/40 px-4 py-2 font-mono text-xs uppercase tracking-widest2 text-danger-light transition-all duration-250 hover:bg-danger hover:text-paper hover:shadow-glow-danger"
           >
             + Nuevo grupo
           </button>
@@ -408,31 +413,22 @@ export default function Groups() {
         </Card>
       )}
 
-      {/* Franja de stats reales — tuyas, no del grupo */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <Gauge label="Power Level" value={powerLevel} progress={powerProgress} />
-        <Gauge label="Racha de entrenos" value={streak} suffix=" días" progress={Math.min(1, streak / 30)} />
-        <Gauge label="Entrenamientos (mes)" value={monthlyWorkouts} progress={Math.min(1, monthlyWorkouts / 20)} />
-      </div>
-
       <div>
-          {/* Integrantes — ranking en barras, del mejor al peor, según el objetivo activo */}
+          {/* Ranking — lista limpia (número, avatar, nombre, valor, flecha),
+              sin barras de progreso por fila: eso ahora vive únicamente en
+              Gran Premio, que es donde importa "cuánto falta". Acá lo que
+              importa es el orden. */}
           <div className="mb-4 flex items-baseline justify-between">
-            <p className="eyebrow">Power · Integrantes · {goal.exerciseLabel}</p>
+            <p className="eyebrow text-danger-light">Ranking</p>
             <p className="font-mono text-xs text-muted">
-              {isRankGoal ? `Objetivo: ${goal.targetTierName}` : `Objetivo: ${goal.targetKg}kg`}
+              {isRankGoal ? `Meta: ${goal.targetTierName}` : `Meta: ${goal.targetKg}kg en ${goal.exerciseLabel.toLowerCase()}`}
             </p>
           </div>
-          <Card className="mb-4 flex flex-col gap-5">
+          <Card className="mb-8 flex flex-col gap-1">
             {ranked.map((m, i) => {
               const { current: stage } = getVegetaStage(m.powerLevel, vegetaEvolution);
               const memberRank = isRankGoal ? rankByUser?.[m.userId] : null;
               const value = isRankGoal ? memberRank?.prKg ?? 0 : m[goal.exercise];
-              const pct = isRankGoal
-                ? Math.min(1, Math.max(0, ((memberRank?.tierLevel ?? -1) + 1) / ((goal.targetTierLevel ?? 6) + 1)))
-                : goal.targetKg
-                ? Math.min(1, value / goal.targetKg)
-                : 0;
               const isLeader = m.userId === leader.userId;
               const medal = RANK_MEDALS[i + 1];
               return (
@@ -442,11 +438,11 @@ export default function Groups() {
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05, duration: 0.3, ease: "easeOut", layout: { duration: 0.5, ease: "easeInOut" } }}
-                  className="flex items-center gap-3"
+                  className="flex items-center gap-3 border-b border-line py-3 first:pt-1 last:border-none last:pb-1"
                 >
                   <span
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-sm font-mono text-[10px] font-bold ${
-                      medal ? medal.cls : "text-muted"
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold ${
+                      medal ? medal.cls : "border border-line text-muted"
                     }`}
                   >
                     {i + 1}
@@ -454,56 +450,53 @@ export default function Groups() {
                   <img
                     src={stage.img}
                     alt={m.name}
-                    className={`h-9 w-9 shrink-0 rounded-full border object-cover object-top ${
-                      isLeader ? "border-maroon shadow-glow-sm" : "border-line"
+                    className={`h-10 w-10 shrink-0 rounded-full border object-cover object-top ${
+                      isLeader ? "border-danger shadow-glow-danger" : "border-line"
                     }`}
                   />
-                  <span className="w-20 shrink-0 truncate text-sm font-semibold">{m.name}</span>
-                  <div className="relative h-1.5 flex-1 overflow-visible bg-line">
-                    <motion.div
-                      className="bar-shimmer absolute inset-y-0 left-0 bg-maroon"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct * 100}%` }}
-                      transition={{ duration: 0.9, ease: "easeOut" }}
-                    />
-                    <motion.span
-                      className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-maroon shadow-glow-sm"
-                      initial={{ left: 0 }}
-                      animate={{ left: `${pct * 100}%` }}
-                      transition={{ duration: 0.9, ease: "easeOut" }}
-                    />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{m.name}</p>
+                    {isLeader && <p className="font-mono text-[9px] uppercase tracking-widest2 text-danger-light">Líder</p>}
                   </div>
-                  <span className="w-16 shrink-0 text-right font-mono text-sm font-semibold text-maroon">
+                  <span className="shrink-0 font-mono text-sm font-semibold text-gold">
                     {isRankGoal ? (memberRank?.tierName ? memberRank.tierName : "Sin marca") : `${value}kg`}
                   </span>
-                  {isLeader && <Tag tone="teal">líder</Tag>}
+                  <ChevronRight size={16} className="shrink-0 text-muted" />
                 </motion.div>
               );
             })}
           </Card>
 
-          {/* Gran Premio — Fase 0 P1: sube acá arriba, pegado al ranking,
-              en vez de vivir en una columna lateral que en mobile quedaba
-              después de todo lo demás (código de invitación, escuadrón). */}
+          {/* Gran Premio — el desafío en juego. Trofeo por defecto (no una
+              foto genérica que puede no existir); si el grupo subió una
+              imagen propia para el premio, esa gana. Layout horizontal +
+              acento rojo, acorde a la identidad de Grupos. */}
           <div className="mb-8">
-            <p className="eyebrow mb-4">Gran Premio</p>
-            <Card className="flex flex-col items-center gap-4 py-8">
-              <CharacterArt src={goal.prizeImageDataUrl || "/groups/premio.jpg"} alt={goal.prize} width={180} height={210} />
-              <div className="text-center">
-                <p className="eyebrow mb-1">En juego</p>
-                <h3 className="font-display text-2xl tracking-wide text-maroon">{goal.prize}</h3>
-                <p className="mt-1 font-mono text-[10px] text-muted">{goal.title}</p>
-              </div>
-              <div className="w-full">
-                <ProgressBar progress={prizeProgress} />
-                <p className="mt-1 text-center font-mono text-[10px] text-muted">
+            <p className="eyebrow mb-4 text-danger-light">Gran Premio</p>
+            <Card className="flex items-center gap-5 border-danger/25">
+              <div className="min-w-0 flex-1">
+                <p className="eyebrow mb-1">En juego: {goal.prize}</p>
+                <h3 className="font-display text-2xl uppercase tracking-wide text-danger-light sm:text-3xl">
+                  {isRankGoal ? goal.targetTierName : `${goal.targetKg}kg en ${goal.exerciseLabel}`}
+                </h3>
+                <div className="mt-3 max-w-xs">
+                  <ProgressBar progress={prizeProgress} tone="danger" />
+                </div>
+                <p className="mt-1 font-mono text-[10px] text-muted">
                   {prizeAchieved
                     ? "¡Desbloqueada!"
                     : isRankGoal
-                    ? `Falta llegar a ${goal.targetTierName} en ${goal.exerciseLabel.toLowerCase()} para desbloquear`
-                    : `Faltan ${prizeMissing}kg en ${goal.exerciseLabel.toLowerCase()} para desbloquear`}
+                    ? `Falta llegar a ${goal.targetTierName} en ${goal.exerciseLabel.toLowerCase()}`
+                    : `Faltan ${prizeMissing}kg en ${goal.exerciseLabel.toLowerCase()}`}
                 </p>
               </div>
+              {goal.prizeImageDataUrl ? (
+                <CharacterArt src={goal.prizeImageDataUrl} alt={goal.prize} width={96} height={112} />
+              ) : (
+                <div className="hud flex h-24 w-24 shrink-0 items-center justify-center rounded-full border border-danger/30 bg-danger/10 shadow-glow-danger">
+                  <Trophy size={40} className="text-danger-light" strokeWidth={1.5} />
+                </div>
+              )}
             </Card>
           </div>
 
@@ -687,6 +680,19 @@ export default function Groups() {
         </div>
 
         <div className="flex flex-col gap-6">
+          {/* Tus stats personales — no son del grupo, así que van después de
+              todo lo grupal (ranking, premio, escuadrón), no antes. Ya se
+              ven en el Dashboard/Personaje; acá quedan como referencia
+              rápida, no como protagonistas de la pantalla. */}
+          <div>
+            <p className="eyebrow mb-4">Tus stats</p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Gauge label="Power Level" value={powerLevel} progress={powerProgress} />
+              <Gauge label="Racha de entrenos" value={streak} suffix=" días" progress={Math.min(1, streak / 30)} />
+              <Gauge label="Entrenamientos (mes)" value={monthlyWorkouts} progress={Math.min(1, monthlyWorkouts / 20)} />
+            </div>
+          </div>
+
           {/* Actividad + posición de cada uno */}
           <div>
             <p className="eyebrow mb-4">Actividad y posición</p>

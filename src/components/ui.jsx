@@ -136,7 +136,12 @@ export function StatPill({ label, value, suffix = "", tone = "neutral" }) {
 
 export function ProgressBar({ progress, tone = "maroon" }) {
   const pct = Math.round(progress * 100);
-  const barColor = tone === "teal" ? "bg-teal shadow-glow-teal" : "bg-maroon shadow-glow-sm";
+  const barColor =
+    tone === "teal"
+      ? "bg-teal shadow-glow-teal"
+      : tone === "danger"
+      ? "bg-danger shadow-glow-danger"
+      : "bg-maroon shadow-glow-sm";
   return (
     <div>
       <div className="h-2 w-full overflow-hidden bg-line/60">
