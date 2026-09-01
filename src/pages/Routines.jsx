@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import useEmblaCarousel from "embla-carousel-react";
 import { PageHeader, Card, Tag, CharacterArt, ProgressBar } from "../components/ui";
+import CharacterFlipbook from "../components/CharacterFlipbook";
 import { vegetaTraining } from "../data/mockData";
 import { DIAS_CORTOS, getWeekDates, toISO, isSameDay } from "../utils/date";
 import { useTrainingGoals } from "../context/TrainingGoalContext";
@@ -955,7 +956,7 @@ export default function Routines() {
       <div>
         <p className="eyebrow mb-4">Vegeta de la semana</p>
         <Card className="sticky top-24 flex flex-col items-center gap-4 py-8">
-          <CharacterArt src={vegetaStage.img} alt={vegetaStage.tag} width={200} height={200} />
+          <CharacterFlipbook frames={vegetaTraining.map((s) => s.img)} alt="Vegeta entrenando" width={200} height={200} />
           <div className="text-center">
             <p className="eyebrow mb-1">{daysTrainedThisWeek} día(s) entrenados</p>
             <h3 className="font-display text-2xl tracking-wide text-maroon">{vegetaStage.tag}</h3>

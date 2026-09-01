@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
+import CharacterFlipbook from "../components/CharacterFlipbook";
 import { useNutrition } from "../context/NutritionContext";
 import { useTracker } from "../context/TrackerContext";
 import { useTraining } from "../context/TrainingContext";
@@ -484,7 +485,7 @@ export default function Nutrition() {
         <div>
           <p className="eyebrow mb-4">Goku de hoy</p>
           <Card className="sticky top-24 flex flex-col items-center gap-4 py-8">
-            <CharacterArt src={gokuStage.img} alt={gokuStage.tag} width={200} height={200} />
+            <CharacterFlipbook frames={gokuEating.map((s) => s.img)} alt="Goku comiendo" width={200} height={200} />
             <div className="text-center">
               <p className="eyebrow mb-1">{mealsLoggedToday} comida(s) hoy</p>
               <h3 className="font-display text-2xl tracking-wide text-maroon">{gokuStage.tag}</h3>

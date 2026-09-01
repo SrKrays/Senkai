@@ -63,6 +63,24 @@ export const gokuEating = [
   { level: 5, mealsLogged: 5, tag: "¡Lleno!", img: "/nutrition/goku-5.png" },
 ];
 
+// Mismos 6 frames de arriba, en el orden en que hay que ciclarlos para el
+// mini-loop decorativo de "Goku comiendo" (SpriteLoop) — no está atado a
+// datos reales, es puro flavor visual en el header de Nutrición.
+export const gokuEatingLoopFrames = gokuEating.map((s) => s.img);
+
+// Frames de "Vegeta entrenando" (Budokai 3) para el mismo tipo de loop
+// decorativo, esta vez en el header de Rutinas. Los números que se ven
+// quemados en cada imagen (16, 20, 24...) son parte del asset original —
+// no se leen ni se usan como dato, es solo textura visual.
+export const vegetaTrainingLoopFrames = [
+  "/routines/vegeta_frame_1.png",
+  "/routines/vegeta_frame_2.png",
+  "/routines/vegeta_frame_3.png",
+  "/routines/vegeta_frame_4.png",
+  "/routines/vegeta_frame_5.png",
+  "/routines/vegeta_frame_6.png",
+];
+
 // Divisiones de comida por defecto — el usuario las puede editar, agregar o quitar.
 export const defaultMealSlots = [
   { id: "desayuno", name: "Desayuno" },

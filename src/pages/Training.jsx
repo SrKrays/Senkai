@@ -148,7 +148,27 @@ export default function Training() {
   }
 
   return (
-    <div>
+    <div className="relative">
+      {/* Fondo temático — Kame House. La imagen fuente es un scan vertical
+          (retrato, ~3:4) con un borde negro grueso alrededor. El contenedor
+          real de esta página es mucho más ancho que alto (sobre todo en
+          desktop) — con `background-size: cover`, eso fuerza a agrandar la
+          imagen tanto para cubrir el ancho que con `bg-top` lo único que
+          termina entrando en el recorte visible es el borde negro de arriba
+          (por eso "se ve, después muere": no es un fallo de carga, es un
+          problema de encuadre). `bg-center` al menos deja la casa en el
+          medio del recorte en vez del borde. La solución de fondo es pedir
+          una versión NUEVA de esta imagen en formato paisaje (horizontal,
+          ideal 16:9, 1600px+ de ancho, la Kame House centrada en el cuadro,
+          sin el marco negro) — con eso el recorte de `cover` cae siempre
+          sobre la escena, sea celular o desktop. */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center"
+        style={{ backgroundImage: "url(/fondo/kame.jpg)" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-paper/25 via-paper/70 to-paper/95" />
+      </div>
+
       <PageHeader
         eyebrow="Entrenamiento"
         title="Progreso por ejercicio"

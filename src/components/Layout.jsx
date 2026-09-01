@@ -6,6 +6,7 @@ import LevelUpOverlay from "./LevelUpOverlay";
 import RankTierUpOverlay from "./RankTierUpOverlay";
 import CharacterOnboarding from "./CharacterOnboarding";
 import Logo, { LogoBadge } from "./Logo";
+import DragonBallSvg from "./DragonBallSvg";
 import { usePoints } from "../context/PointsContext";
 import { useAuth } from "../context/AuthContext";
 
@@ -109,7 +110,16 @@ export default function Layout() {
           {/* pt con env(safe-area-inset-top): en la PWA instalada en iPhone
               (modo standalone, sin la barra de Safari) el notch/Dynamic
               Island se come el contenido si no se reserva ese espacio. */}
-          <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-line bg-paper/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur md:gap-4 md:px-8">
+          <header className="sticky top-0 z-10 flex items-center justify-between gap-2 overflow-hidden border-b border-line bg-paper/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur md:gap-4 md:px-8">
+            {/* Esfera del Dragón — vive acá porque este header se ve SIEMPRE,
+                en cualquier pantalla, a diferencia del hero del Dashboard
+                que solo aparece una vez. Una sola, chica, centrada en el
+                espacio libre entre el logo y el Power Level. */}
+            <DragonBallSvg
+              className="pointer-events-none absolute left-1/2 top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 text-maroon opacity-[0.35] md:h-11 md:w-11"
+              floatDistance={3}
+              floatDuration={4}
+            />
             <div className="flex shrink-0 items-center gap-1.5 md:hidden">
               <LogoBadge badgeSize={26} />
               <span className="font-display text-lg tracking-widest2 text-maroon-light">SENKAI</span>

@@ -3,18 +3,44 @@
 @tailwind utilities;
 
 :root {
-  /* Senkai — Training System. Variables globales del sistema visual.
-     Mismos valores que tailwind.config.js — tocar ambos si se ajusta la paleta. */
+  /* Senkai — Training System. FUENTE ÚNICA de verdad del sistema de color
+     (Fase 0 — Parte 1, Foundation). Antes estos valores vivían duplicados a
+     mano acá Y en tailwind.config.js, con el riesgo de desincronizarse — y
+     de hecho la mayoría de los usos reales más abajo en este mismo archivo
+     ni siquiera leían estas variables, tenían el rgba() de cada color
+     pegado a mano. Ahora tailwind.config.js referencia estos canales
+     directamente (formato "R G B" sin comas, para poder combinarse con el
+     modificador de opacidad de Tailwind vía rgb(var(--x) / <alpha-value>)),
+     así que para retocar la paleta alcanza con cambiar los valores de acá. */
   --bg-primary: #050505;
   --bg-secondary: #000000;
   --bg-card: #0a0a0a;
   --border: #1f1f1f;
-  --red: #e51e3a;
-  --red-bright: #ff2448;
+
+  /* Acento primario — lima/amarillo-verdoso ("energía ki"), Fase 0 Parte 1
+     regla 11. Reemplaza al rojo neón de la iteración visual anterior. */
+  --red-rgb: 166 226 46; /* #A6E22E */
+  --red-dark-rgb: 124 181 24; /* #7CB518 */
+  --red-light-rgb: 232 255 122; /* #E8FF7A — variante brillante, para glow/texto destacado */
+
+  /* Acento secundario — celeste marcado (más saturado y definido que el
+     cyan pastel anterior). Rol semántico: progreso de entrenamiento,
+     estadísticas, actividad física. */
+  --blue-rgb: 31 193 245; /* #1FC1F5 */
+  --blue-dark-rgb: 14 147 190; /* #0E93BE */
+  --blue-light-rgb: 142 233 255; /* #8EE9FF */
+
+  /* Rojo — dejó de ser el color dominante (Fase 0 P1, corrección de
+     dirección). Ahora es puramente semántico: errores, alertas, acciones
+     destructivas. Valor nuevo (antes el "rojo" de la app era el que hoy es
+     --red-rgb / lima — este es un rojo real, sin relación con esos tokens). */
+  --danger-rgb: 255 69 58; /* #FF453A */
+  --danger-dark-rgb: 214 48 31; /* #D6301F */
+  --danger-light-rgb: 255 138 128; /* #FF8A80 */
+
   --text-primary: #f5f5f5;
   --text-secondary: #a0a0a0;
   --text-muted: #666666;
-  --blue: #3aaeec;
 }
 
 @layer base {
@@ -50,21 +76,29 @@
   }
   body {
     @apply bg-paper text-ink font-body antialiased;
-    background-image: radial-gradient(ellipse 900px 480px at 12% -10%, rgba(229, 30, 58, 0.1), transparent 60%),
-      radial-gradient(ellipse 600px 400px at 100% 0%, rgba(58, 174, 236, 0.05), transparent 55%);
+    background-image: radial-gradient(ellipse 900px 480px at 12% -10%, rgb(var(--red-rgb) / 0.1), transparent 60%),
+      radial-gradient(ellipse 600px 400px at 100% 0%, rgb(var(--blue-rgb) / 0.05), transparent 55%);
     background-attachment: fixed;
   }
   ::selection {
     @apply bg-maroon text-paper;
   }
   :focus-visible {
-    outline: 2px solid var(--red-bright);
+    outline: 2px solid rgb(var(--red-light-rgb));
     outline-offset: 2px;
   }
 }
 
 @layer components {
-  /* Motivo HUD tipo scouter — esquinas cortadas rojas + borde neutro, heredado de la Fase 0 */
+  /* Motivo HUD tipo scouter — esquinas cortadas + borde neutro.
+     Corrección de dirección (Fase 0 P1): antes esto pintaba TODAS las
+     cards de la app con el acento principal (brackets + glow al hover),
+     que era la causa #1 de que todo se sintiera "negro + verde en cada
+     elemento" en vez de tener jerarquía. El motivo estructural ahora es
+     neutro (blanco/gris, como un detalle de producto premium) — el acento
+     de color queda reservado para lo que de verdad es interactivo o
+     importante (botones, estados activos, progreso), no para el marco de
+     cada card. */
   .hud {
     position: relative;
     border-radius: 0.375rem;
@@ -72,7 +106,8 @@
     transition: box-shadow 250ms ease, transform 250ms ease, border-color 250ms ease;
   }
   .hud:hover {
-    box-shadow: 0 0 0 1px rgba(229, 30, 58, 0.14), 0 12px 28px -14px rgba(229, 30, 58, 0.28);
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 14px 30px -14px rgba(0, 0, 0, 0.7);
+    border-color: rgba(245, 245, 245, 0.16);
   }
   .hud::before,
   .hud::after {
@@ -80,7 +115,7 @@
     position: absolute;
     width: 9px;
     height: 9px;
-    border-color: var(--red-bright);
+    border-color: rgba(245, 245, 245, 0.3);
     opacity: 0.9;
   }
   .hud::before {
@@ -96,9 +131,9 @@
     border-right: 2px solid;
   }
 
-  /* Aura roja detrás de los personajes — usar junto a CharacterArt */
+  /* Aura detrás de los personajes — usar junto a CharacterArt */
   .char-glow {
-    filter: drop-shadow(0 0 18px rgba(229, 30, 58, 0.35)) drop-shadow(0 0 46px rgba(229, 30, 58, 0.12));
+    filter: drop-shadow(0 0 18px rgb(var(--red-rgb) / 0.35)) drop-shadow(0 0 46px rgb(var(--red-rgb) / 0.12));
   }
 
   .eyebrow {
@@ -107,10 +142,10 @@
 
   /* Texto neón — para stats "vivos" como Power Level y contadores de subida */
   .neon-text {
-    text-shadow: 0 0 6px rgba(229, 30, 58, 0.9), 0 0 16px rgba(229, 30, 58, 0.55), 0 0 32px rgba(229, 30, 58, 0.3);
+    text-shadow: 0 0 6px rgb(var(--red-rgb) / 0.9), 0 0 16px rgb(var(--red-rgb) / 0.55), 0 0 32px rgb(var(--red-rgb) / 0.3);
   }
   .neon-text-teal {
-    text-shadow: 0 0 6px rgba(58, 174, 236, 0.9), 0 0 14px rgba(58, 174, 236, 0.55), 0 0 28px rgba(58, 174, 236, 0.3);
+    text-shadow: 0 0 6px rgb(var(--blue-rgb) / 0.9), 0 0 14px rgb(var(--blue-rgb) / 0.55), 0 0 28px rgb(var(--blue-rgb) / 0.3);
   }
   .neon-text-gold {
     text-shadow: 0 0 6px rgba(217, 164, 65, 0.9), 0 0 14px rgba(217, 164, 65, 0.55), 0 0 28px rgba(217, 164, 65, 0.3);
@@ -135,7 +170,7 @@
     inset: -18%;
     z-index: -1;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(229, 30, 58, 0.35) 0%, rgba(229, 30, 58, 0.12) 45%, transparent 72%);
+    background: radial-gradient(circle, rgb(var(--red-rgb) / 0.35) 0%, rgb(var(--red-rgb) / 0.12) 45%, transparent 72%);
     animation: auraPulse 2.6s ease-in-out infinite;
   }
 

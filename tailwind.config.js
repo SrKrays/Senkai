@@ -4,20 +4,36 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Senkai — Training System. Negro + rojo neón, HUD anime/gaming.
+        // Senkai — Training System. Negro + lima/celeste marcado, HUD anime/gaming.
+        // Fase 0 — Parte 1 (Foundation): los valores reales de "maroon" y
+        // "teal" ya NO viven acá — apuntan a las variables RGB definidas en
+        // src/index.css (:root), que ahora son la única fuente de verdad de
+        // la paleta. Se mantienen estos mismos NOMBRES de clase (maroon,
+        // teal) a propósito para no tener que tocar los ~15 archivos de
+        // páginas que ya los usan (text-maroon, bg-maroon/20, etc.) — el
+        // nombre quedó "pegado" del acento rojo original, pero hoy resuelve
+        // al lima. Cambiar de paleta de nuevo en el futuro = editar
+        // src/index.css, nunca este archivo.
         ink: "#F5F5F5",
         paper: "#050505",
         cream: "#000000",
         card: "#0A0A0A",
         maroon: {
-          DEFAULT: "#E51E3A",
-          dark: "#B4152C",
-          light: "#FF2448",
+          DEFAULT: "rgb(var(--red-rgb) / <alpha-value>)",
+          dark: "rgb(var(--red-dark-rgb) / <alpha-value>)",
+          light: "rgb(var(--red-light-rgb) / <alpha-value>)",
         },
         teal: {
-          DEFAULT: "#3AAEEC",
-          dark: "#1E7FB8",
-          light: "#8AD4F7",
+          DEFAULT: "rgb(var(--blue-rgb) / <alpha-value>)",
+          dark: "rgb(var(--blue-dark-rgb) / <alpha-value>)",
+          light: "rgb(var(--blue-light-rgb) / <alpha-value>)",
+        },
+        // Rojo real, semántico — errores, alertas, acciones destructivas.
+        // Sin relación con "maroon" (que hoy resuelve a lima).
+        danger: {
+          DEFAULT: "rgb(var(--danger-rgb) / <alpha-value>)",
+          dark: "rgb(var(--danger-dark-rgb) / <alpha-value>)",
+          light: "rgb(var(--danger-light-rgb) / <alpha-value>)",
         },
         gold: "#D9A441",
         silver: "#B9C2CC",
@@ -26,9 +42,10 @@ export default {
         line: "#1F1F1F",
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(229,30,58,0.18), 0 0 22px -8px rgba(255,36,72,0.5)",
-        "glow-sm": "0 0 12px rgba(229,30,58,0.18)",
-        "glow-teal": "0 0 0 1px rgba(58,174,236,0.2), 0 0 22px -8px rgba(58,174,236,0.5)",
+        glow: "0 0 0 1px rgb(var(--red-rgb) / 0.18), 0 0 22px -8px rgb(var(--red-light-rgb) / 0.5)",
+        "glow-sm": "0 0 12px rgb(var(--red-rgb) / 0.18)",
+        "glow-teal": "0 0 0 1px rgb(var(--blue-rgb) / 0.2), 0 0 22px -8px rgb(var(--blue-rgb) / 0.5)",
+        "glow-danger": "0 0 0 1px rgb(var(--danger-rgb) / 0.2), 0 0 22px -8px rgb(var(--danger-rgb) / 0.5)",
         "glow-gold": "0 0 0 1px rgba(217,164,65,0.25), 0 0 18px -6px rgba(217,164,65,0.6)",
         "glow-silver": "0 0 0 1px rgba(185,194,204,0.3), 0 0 14px -6px rgba(185,194,204,0.55)",
         "glow-bronze": "0 0 0 1px rgba(138,90,52,0.3), 0 0 14px -6px rgba(138,90,52,0.55)",

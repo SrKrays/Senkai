@@ -20,15 +20,6 @@ function exerciseGrowthPct(progressLog, exerciseId) {
   return ((last.weight - first.weight) / first.weight) * 100;
 }
 
-const SECTIONS = [
-  { to: "/tracker", label: "Tracker de Hábitos", icon: "✅" },
-  { to: "/entrenamiento", label: "Entrenamiento", icon: "🏋️" },
-  { to: "/rutinas", label: "Rutinas", icon: "🗓️" },
-  { to: "/nutricion", label: "Nutrición", icon: "🍽️" },
-  { to: "/suplementacion", label: "Suplementación", icon: "💊" },
-  { to: "/estadisticas", label: "Objetivos y Estadísticas", icon: "📊" },
-];
-
 export default function Dashboard() {
   const { exercises, progressLog, benchKg } = useTraining();
   const { habits, today } = useTracker();
@@ -168,21 +159,6 @@ export default function Dashboard() {
             </>
           )}
         </Card>
-      </div>
-
-      {/* Entrada rápida al resto de la web */}
-      <p className="eyebrow mb-4">Ir a...</p>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {SECTIONS.map((s) => (
-          <Link
-            key={s.to}
-            to={s.to}
-            className="hud flex items-center gap-3 border border-maroon/20 bg-card px-4 py-3 text-sm hover:bg-maroon/5"
-          >
-            <span className="text-lg">{s.icon}</span>
-            {s.label}
-          </Link>
-        ))}
       </div>
     </div>
   );
