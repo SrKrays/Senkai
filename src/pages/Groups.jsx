@@ -366,7 +366,6 @@ export default function Groups() {
       <PageHeader
         eyebrow="Grupos"
         title={group.name}
-        description="Comparti progreso con tu equipo y compitan por metas grupales."
         action={
           <button
             onClick={() => setShowSwitchPanel((v) => !v)}
@@ -416,8 +415,7 @@ export default function Groups() {
         <Gauge label="Entrenamientos (mes)" value={monthlyWorkouts} progress={Math.min(1, monthlyWorkouts / 20)} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        <div>
+      <div>
           {/* Integrantes — ranking en barras, del mejor al peor, según el objetivo activo */}
           <div className="mb-4 flex items-baseline justify-between">
             <p className="eyebrow">Power · Integrantes · {goal.exerciseLabel}</p>
@@ -483,6 +481,31 @@ export default function Groups() {
               );
             })}
           </Card>
+
+          {/* Gran Premio — Fase 0 P1: sube acá arriba, pegado al ranking,
+              en vez de vivir en una columna lateral que en mobile quedaba
+              después de todo lo demás (código de invitación, escuadrón). */}
+          <div className="mb-8">
+            <p className="eyebrow mb-4">Gran Premio</p>
+            <Card className="flex flex-col items-center gap-4 py-8">
+              <CharacterArt src={goal.prizeImageDataUrl || "/groups/premio.jpg"} alt={goal.prize} width={180} height={210} />
+              <div className="text-center">
+                <p className="eyebrow mb-1">En juego</p>
+                <h3 className="font-display text-2xl tracking-wide text-maroon">{goal.prize}</h3>
+                <p className="mt-1 font-mono text-[10px] text-muted">{goal.title}</p>
+              </div>
+              <div className="w-full">
+                <ProgressBar progress={prizeProgress} />
+                <p className="mt-1 text-center font-mono text-[10px] text-muted">
+                  {prizeAchieved
+                    ? "¡Desbloqueada!"
+                    : isRankGoal
+                    ? `Falta llegar a ${goal.targetTierName} en ${goal.exerciseLabel.toLowerCase()} para desbloquear`
+                    : `Faltan ${prizeMissing}kg en ${goal.exerciseLabel.toLowerCase()} para desbloquear`}
+                </p>
+              </div>
+            </Card>
+          </div>
 
           {!showGoalForm ? (
             <button
@@ -664,44 +687,6 @@ export default function Groups() {
         </div>
 
         <div className="flex flex-col gap-6">
-          {/* Código de invitación — lo comparten para que cualquiera se sume desde su teléfono */}
-          <div>
-            <p className="eyebrow mb-4">Código de invitación</p>
-            <Card className="flex items-center justify-between gap-3">
-              <span className="font-mono text-lg font-semibold tracking-widest text-maroon">{group.inviteCode}</span>
-              <button
-                onClick={handleCopyCode}
-                className="flex items-center gap-1.5 border border-maroon/25 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
-              >
-                {codeCopied ? <Check size={13} /> : <Copy size={13} />}
-                {codeCopied ? "Copiado" : "Copiar"}
-              </button>
-            </Card>
-          </div>
-
-          {/* Objetivo actual / Gran Premio — se ajusta solo al reto vigente */}
-          <div>
-            <p className="eyebrow mb-4">Objetivo actual</p>
-            <Card className="flex flex-col items-center gap-4 py-8">
-              <CharacterArt src={goal.prizeImageDataUrl || "/groups/premio.jpg"} alt={goal.prize} width={200} height={240} />
-              <div className="text-center">
-                <p className="eyebrow mb-1">En juego</p>
-                <h3 className="font-display text-2xl tracking-wide text-maroon">{goal.prize}</h3>
-                <p className="mt-1 font-mono text-[10px] text-muted">{goal.title}</p>
-              </div>
-              <div className="w-full">
-                <ProgressBar progress={prizeProgress} />
-                <p className="mt-1 text-center font-mono text-[10px] text-muted">
-                  {prizeAchieved
-                    ? "¡Desbloqueada!"
-                    : isRankGoal
-                    ? `Falta llegar a ${goal.targetTierName} en ${goal.exerciseLabel.toLowerCase()} para desbloquear`
-                    : `Faltan ${prizeMissing}kg en ${goal.exerciseLabel.toLowerCase()} para desbloquear`}
-                </p>
-              </div>
-            </Card>
-          </div>
-
           {/* Actividad + posición de cada uno */}
           <div>
             <p className="eyebrow mb-4">Actividad y posición</p>
@@ -733,8 +718,24 @@ export default function Groups() {
           </div>
 
           <GroupRankPanel />
+
+          {/* Código de invitación — Fase 0 P1: baja al final. Es la tarea
+              administrativa de "sumar gente", no lo primero que alguien
+              busca al entrar a Grupos (eso es el ranking y el Gran Premio). */}
+          <div>
+            <p className="eyebrow mb-4">Código de invitación</p>
+            <Card className="flex items-center justify-between gap-3">
+              <span className="font-mono text-lg font-semibold tracking-widest text-maroon">{group.inviteCode}</span>
+              <button
+                onClick={handleCopyCode}
+                className="flex items-center gap-1.5 border border-maroon/25 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
+              >
+                {codeCopied ? <Check size={13} /> : <Copy size={13} />}
+                {codeCopied ? "Copiado" : "Copiar"}
+              </button>
+            </Card>
+          </div>
         </div>
-      </div>
     </div>
   );
 }

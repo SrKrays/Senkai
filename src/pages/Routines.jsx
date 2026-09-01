@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import useEmblaCarousel from "embla-carousel-react";
-import { PageHeader, Card, Tag, CharacterArt, ProgressBar } from "../components/ui";
+import { Dumbbell, CheckSquare } from "lucide-react";
+import { PageHeader, Card, Tag, CharacterHero } from "../components/ui";
 import CharacterFlipbook from "../components/CharacterFlipbook";
 import { vegetaTraining } from "../data/mockData";
 import { DIAS_CORTOS, getWeekDates, toISO, isSameDay } from "../utils/date";
@@ -408,7 +409,6 @@ export default function Routines() {
       <PageHeader
         eyebrow="Rutinas"
         title="Biblioteca de rutinas"
-        description="Armá tus rutinas con ejercicios de tu biblioteca de Entrenamiento, elegí qué días las entrenás, y confirmá cada día real."
         action={
           <button
             onClick={() => setShowNewRoutine((v) => !v)}
@@ -454,8 +454,15 @@ export default function Routines() {
         </Card>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_240px]">
-      <div>
+      {/* Hero — Vegeta, primero en el DOM (antes vivía en una columna
+          lateral que en mobile quedaba al fondo de la pantalla). */}
+      <CharacterHero
+        eyebrow={`${daysTrainedThisWeek} día(s) entrenados esta semana`}
+        name={vegetaStage.tag}
+        tone="teal"
+        progress={weekProgress}
+        art={<CharacterFlipbook frames={vegetaTraining.map((s) => s.img)} alt="Vegeta entrenando" width={140} height={140} />}
+      />
 
       {/* Confirmación de entreno del día — independiente de si cargaste una
           marca nueva en Entrenamiento (no todo día de gym deja un PR). Suma
@@ -464,9 +471,7 @@ export default function Routines() {
         <div>
           <p className="eyebrow mb-1 text-maroon">Check-in del día</p>
           <p className="text-sm text-muted">
-            {checkedInToday
-              ? "Ya confirmaste que entrenaste hoy."
-              : "Confirmá que entrenaste hoy para que sume a los objetivos grupales de días entrenados."}
+            {checkedInToday ? "Ya confirmaste que entrenaste hoy." : "Confirmá tu entreno de hoy."}
           </p>
         </div>
         <button
@@ -500,21 +505,19 @@ export default function Routines() {
       <div className="mb-6 grid gap-3 sm:grid-cols-2">
         <Link
           to="/entrenamiento"
-          className="hud flex items-center justify-between border border-maroon/25 bg-card px-4 py-3 text-sm hover:bg-maroon/5"
+          className="hud flex items-center gap-2 border border-maroon/25 bg-card px-4 py-3 text-sm hover:bg-maroon/5"
         >
-          <span>
-            <span className="mr-2">🏋️</span>No te olvides de registrar tu marca de hoy
-          </span>
-          <span className="font-mono text-xs text-maroon">Entrenamiento →</span>
+          <Dumbbell size={16} className="shrink-0 text-maroon" />
+          <span className="flex-1">Registrá tu marca de hoy</span>
+          <span className="font-mono text-xs text-maroon">→</span>
         </Link>
         <Link
           to="/tracker"
-          className="hud flex items-center justify-between border border-maroon/25 bg-card px-4 py-3 text-sm hover:bg-maroon/5"
+          className="hud flex items-center gap-2 border border-maroon/25 bg-card px-4 py-3 text-sm hover:bg-maroon/5"
         >
-          <span>
-            <span className="mr-2">✅</span>Marcá el día en el Tracker de hábitos
-          </span>
-          <span className="font-mono text-xs text-maroon">Tracker →</span>
+          <CheckSquare size={16} className="shrink-0 text-maroon" />
+          <span className="flex-1">Marcá el día en el Tracker</span>
+          <span className="font-mono text-xs text-maroon">→</span>
         </Link>
       </div>
 
@@ -701,6 +704,19 @@ export default function Routines() {
                   </div>
                 )}
 
+                {/* Fase 0 P1: colapsada, la card solo dice lo esencial (foco +
+                    cantidad de ejercicios, vía el Tag de abajo) — días de
+                    entrenamiento y la lista completa de ejercicios solo se
+                    ven al expandir, no compiten con el resto de las rutinas. */}
+                {!isOpen && (
+                  <p className="font-mono text-xs text-muted">
+                    {r.daysOfWeek.length > 0
+                      ? r.daysOfWeek.map((i) => DIAS_CORTOS[i]).join(" · ")
+                      : "Sin días asignados"}
+                  </p>
+                )}
+
+                {isOpen && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <p className="eyebrow mb-1.5">Días de entrenamiento · click para ajustar</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -717,7 +733,9 @@ export default function Routines() {
                     ))}
                   </div>
                 </div>
+                )}
 
+                {isOpen && (
                 <ul className="flex flex-col gap-2">
                   {r.exercises.map((ex) => (
                     <li key={ex.id} className="flex items-center gap-3 border-b border-ink/10 pb-2 text-sm last:border-none">
@@ -798,6 +816,7 @@ export default function Routines() {
                     </li>
                   ))}
                 </ul>
+                )}
 
                 <Tag>{r.exercises.length} ejercicios</Tag>
 
@@ -949,27 +968,6 @@ export default function Routines() {
           })}
         </div>
       )}
-
-      </div>
-
-      {/* Vegeta entrenando — evoluciona según los días entrenados esta semana */}
-      <div>
-        <p className="eyebrow mb-4">Vegeta de la semana</p>
-        <Card className="sticky top-24 flex flex-col items-center gap-4 py-8">
-          <CharacterFlipbook frames={vegetaTraining.map((s) => s.img)} alt="Vegeta entrenando" width={200} height={200} />
-          <div className="text-center">
-            <p className="eyebrow mb-1">{daysTrainedThisWeek} día(s) entrenados</p>
-            <h3 className="font-display text-2xl tracking-wide text-maroon">{vegetaStage.tag}</h3>
-          </div>
-          <ProgressBar progress={weekProgress} />
-          <p className="text-center text-xs text-muted">
-            Cada día que confirmes entreno acá arriba, o que cargues una marca en Entrenamiento, suma acá. Se reinicia
-            cada semana.
-          </p>
-        </Card>
-      </div>
-
-      </div>
     </div>
   );
 }
