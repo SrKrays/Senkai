@@ -9,6 +9,7 @@ import { useCharacter } from "../context/CharacterContext";
 import { useRank } from "../context/RankContext";
 import { useGroup } from "../context/GroupContext";
 import { useTrainingGoals } from "../context/TrainingGoalContext";
+import { useProfile } from "../context/ProfileContext";
 import { toISO, startOfWeekMonday, monthLabel } from "../utils/date";
 
 const LINE_COLORS = { gym: "#3AAEEC", comida: "#D9A441", suplemento: "#D7263D" };
@@ -18,6 +19,16 @@ const LINE_COLORS = { gym: "#3AAEEC", comida: "#D9A441", suplemento: "#D7263D" }
 const TIER_NAMES = [
   "Vegeta Base", "Super Saiyan", "Super Saiyan 2", "Super Saiyan 3",
   "Super Saiyan Dios", "Super Saiyan Blue", "Ultra Ego",
+];
+
+// Fase 0 P1: Estadísticas pasa a tabs (Resumen / Fuerza / Físico) — antes
+// era una sola ruta larguísima con todo a la vista simultáneamente. Misma
+// información, dosificada: quién soy hoy primero, el detalle de fuerza
+// después, y el cuerpo (peso/altura) en su propio lugar.
+const TABS = [
+  { key: "resumen", label: "Resumen" },
+  { key: "fuerza", label: "Fuerza" },
+  { key: "fisico", label: "Físico" },
 ];
 
 // Momentum (Fase 9 v2, Capa 3) — estado derivado pura y exclusivamente del
@@ -92,6 +103,9 @@ export default function Stats() {
   const { mealSlots, mealLogsByDate, nutritionScore } = useNutrition();
   const { supplements, supplementationScore } = useSupplementation();
   const { powerLevel, gymPoints, suplementoPoints, alimentacionPoints, trackerPoints } = usePoints();
+  const { heightCm, latestWeightKg, weightLog } = useProfile();
+
+  const [tab, setTab] = useState("resumen");
 
   // Objetivos "activos" reales (Fase 9 v2) — el progreso viene siempre
   // calculado por el backend a partir de datos reales, nunca de una barra
@@ -283,6 +297,13 @@ export default function Stats() {
   const pendingHabits = habits.filter((h) => !h.checksByDate[toISO(today)]);
   const pendingNotes = notes.filter((n) => !n.done);
 
+  // Evolución de peso corporal (Físico) — delta entre el primer y el último
+  // registro cargado, null si todavía no hay al menos dos para comparar.
+  const weightGrowthKg =
+    weightLog.length >= 2
+      ? Number((weightLog[weightLog.length - 1].weightKg - weightLog[0].weightKg).toFixed(1))
+      : null;
+
   // --- Gráfico de líneas (SVG) ---
   const chartW = 600;
   const chartH = 200;
@@ -301,330 +322,241 @@ export default function Stats() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Objetivos y Estadísticas"
-        title="Panel general"
-        description="Todos tus objetivos activos, el pulso del mes y el estado de Vegeta, en un solo lugar."
-      />
+      <PageHeader eyebrow="Objetivos y Estadísticas" title="Panel general" />
 
-      {/* Objetivos — fila horizontal, se auto-ajusta al agregar o quitar */}
-      <div className="mb-10">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="eyebrow">Objetivos activos</p>
+      {/* Tabs — Fase 0 P1: antes todo esto vivía en una sola ruta muy larga,
+          con Objetivos + Ritmo + Rango por ejercicio + Build física +
+          gráfico + Vegeta, todo a la vista al mismo tiempo. */}
+      <div className="mb-8 flex gap-2 border-b border-line">
+        {TABS.map((t) => (
           <button
-            onClick={() => setShowNewObjective((v) => !v)}
-            className="border border-maroon/40 px-4 py-2 font-mono text-xs uppercase tracking-widest2 text-maroon hover:bg-maroon hover:text-paper"
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-4 py-2.5 font-mono text-xs uppercase tracking-widest2 transition-colors duration-150 ${
+              tab === t.key
+                ? "border-b-2 border-maroon text-maroon"
+                : "text-muted hover:text-ink"
+            }`}
           >
-            + Nuevo objetivo
+            {t.label}
           </button>
-        </div>
-
-        {showNewObjective && (
-          <Card className="mb-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setNewMetric("rank")}
-                  className={`px-2.5 py-2 font-mono text-[10px] uppercase tracking-widest2 ${
-                    newMetric === "rank" ? "bg-maroon text-paper" : "border border-maroon/25 text-maroon"
-                  }`}
-                >
-                  Individual · ejercicio
-                </button>
-                <button
-                  onClick={() => setNewMetric("training_days")}
-                  disabled={notInGroup}
-                  title={notInGroup ? "Necesitás estar en un grupo para este tipo" : undefined}
-                  className={`px-2.5 py-2 font-mono text-[10px] uppercase tracking-widest2 disabled:opacity-40 ${
-                    newMetric === "training_days" ? "bg-maroon text-paper" : "border border-maroon/25 text-maroon"
-                  }`}
-                >
-                  Grupal · días entrenados
-                </button>
-              </div>
-
-              <input
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Título del objetivo"
-                className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-              />
-
-              {newMetric === "rank" ? (
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <select
-                    value={newRankSlug}
-                    onChange={(e) => setNewRankSlug(e.target.value)}
-                    className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                  >
-                    <option value="">Elegí un ejercicio del catálogo...</option>
-                    {goalCatalog.map((k) => (
-                      <option key={k.slug} value={k.slug}>
-                        {k.muscleGroup} · {k.name}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    value={newTargetKg}
-                    onChange={(e) => setNewTargetKg(e.target.value)}
-                    placeholder="Meta en kg"
-                    className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                  />
-                  <input
-                    type="date"
-                    value={newDeadline}
-                    onChange={(e) => setNewDeadline(e.target.value)}
-                    className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <label className="flex-1 text-xs text-muted">
-                    Desde
-                    <input
-                      type="date"
-                      value={newWindowStart}
-                      onChange={(e) => setNewWindowStart(e.target.value)}
-                      className="mt-1 w-full border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                    />
-                  </label>
-                  <label className="flex-1 text-xs text-muted">
-                    Hasta
-                    <input
-                      type="date"
-                      value={newWindowEnd}
-                      onChange={(e) => setNewWindowEnd(e.target.value)}
-                      className="mt-1 w-full border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                    />
-                  </label>
-                  <label className="text-xs text-muted">
-                    Meta en días
-                    <input
-                      type="number"
-                      value={newTargetDays}
-                      onChange={(e) => setNewTargetDays(e.target.value)}
-                      className="mt-1 w-24 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
-                    />
-                  </label>
-                </div>
-              )}
-
-              <div>
-                <button
-                  onClick={addObjective}
-                  disabled={savingGoal}
-                  className="bg-maroon px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250 disabled:opacity-50"
-                >
-                  Agregar
-                </button>
-              </div>
-              <p className="font-mono text-[10px] text-muted">
-                {newMetric === "rank"
-                  ? "El progreso se calcula solo con tu PR real registrado en Entrenamiento — nada de arrastrar barras."
-                  : "Cuenta un día apenas cualquier integrante del grupo confirme \"entrené hoy\" en Rutinas. Se cierra sola al pasar la fecha."}
-              </p>
-            </div>
-          </Card>
-        )}
-
-        {goalsLoading ? (
-          <p className="text-sm text-muted">Cargando...</p>
-        ) : trainingGoals.length === 0 ? (
-          <Card className="flex flex-col items-center gap-2 py-12 text-center">
-            <p className="font-display text-2xl tracking-wide text-maroon">Sin objetivos cargados</p>
-            <p className="max-w-sm text-sm text-muted">Agregá el primero con "+ Nuevo objetivo".</p>
-          </Card>
-        ) : showGoalGroups ? (
-          <div className="flex flex-col gap-6">
-            <div>
-              <p className="mb-3 font-mono text-[10px] uppercase tracking-widest2 text-maroon">
-                Individuales · {individualGoals.length}
-              </p>
-              <ObjectiveGrid goals={individualGoals} onDelete={deleteObjective} />
-            </div>
-            <div>
-              <p className="mb-3 font-mono text-[10px] uppercase tracking-widest2 text-teal-dark">
-                Grupales · {groupGoals.length}
-              </p>
-              <ObjectiveGrid goals={groupGoals} onDelete={deleteObjective} />
-            </div>
-          </div>
-        ) : (
-          <ObjectiveGrid goals={sortedGoals} onDelete={deleteObjective} />
-        )}
+        ))}
       </div>
 
-      {/* Ritmo de mejora — no es cuánto levantás, es cuánto MEJORASTE en la
-          ventana elegida. Ventana de 30 días en base al mes, pero elegible
-          (podés arrancarla desde hoy si estás a mitad de mes). */}
-      <div className="mb-10">
-        <p className="eyebrow mb-4">Ritmo de mejora</p>
-        <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            {growth?.scorePct === null || growth?.scorePct === undefined ? (
-              <p className="text-sm text-muted">
-                Todavía no hay suficientes marcas en esta ventana para calcularlo — cargá progreso en al menos dos
-                fechas distintas de algún ejercicio del rango.
+      {tab === "resumen" && (
+        <>
+          {/* Vegeta — quién soy, cómo estoy, primero de todo en el resumen */}
+          <Card className="relative mb-10 flex flex-col items-center gap-5 overflow-hidden py-7 text-center sm:flex-row sm:items-center sm:text-left">
+            <CharacterArt src={current.img} alt={current.name} width={140} height={200} />
+            <div className="flex-1">
+              <p className="eyebrow mb-1">Power Level {powerLevel.toLocaleString("es-AR")}</p>
+              <h2 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">{current.name}</h2>
+              <Tag tone="teal">{current.tag}</Tag>
+              <p className="mt-2 font-mono text-[10px] text-muted">
+                {next
+                  ? `Próxima: ${next.name} · faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts`
+                  : "Nivel máximo alcanzado"}
               </p>
+              <div className="mt-3 max-w-sm">
+                <ProgressBar progress={progress} tone="teal" />
+              </div>
+              <p className="mt-2 font-mono text-[10px] text-muted">
+                {deltaPts >= 0 ? "Subiste" : "Bajaste"} {Math.abs(deltaPts)} pts esta semana
+              </p>
+            </div>
+          </Card>
+
+          {/* Objetivos — fila horizontal, se auto-ajusta al agregar o quitar */}
+          <div className="mb-10">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="eyebrow">Objetivos activos</p>
+              <button
+                onClick={() => setShowNewObjective((v) => !v)}
+                className="border border-maroon/40 px-4 py-2 font-mono text-xs uppercase tracking-widest2 text-maroon hover:bg-maroon hover:text-paper"
+              >
+                + Nuevo objetivo
+              </button>
+            </div>
+
+            {showNewObjective && (
+              <Card className="mb-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setNewMetric("rank")}
+                      className={`px-2.5 py-2 font-mono text-[10px] uppercase tracking-widest2 ${
+                        newMetric === "rank" ? "bg-maroon text-paper" : "border border-maroon/25 text-maroon"
+                      }`}
+                    >
+                      Individual · ejercicio
+                    </button>
+                    <button
+                      onClick={() => setNewMetric("training_days")}
+                      disabled={notInGroup}
+                      title={notInGroup ? "Necesitás estar en un grupo para este tipo" : undefined}
+                      className={`px-2.5 py-2 font-mono text-[10px] uppercase tracking-widest2 disabled:opacity-40 ${
+                        newMetric === "training_days" ? "bg-maroon text-paper" : "border border-maroon/25 text-maroon"
+                      }`}
+                    >
+                      Grupal · días entrenados
+                    </button>
+                  </div>
+
+                  <input
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="Título del objetivo"
+                    className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+                  />
+
+                  {newMetric === "rank" ? (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <select
+                        value={newRankSlug}
+                        onChange={(e) => setNewRankSlug(e.target.value)}
+                        className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+                      >
+                        <option value="">Elegí un ejercicio del catálogo...</option>
+                        {goalCatalog.map((k) => (
+                          <option key={k.slug} value={k.slug}>
+                            {k.muscleGroup} · {k.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        value={newTargetKg}
+                        onChange={(e) => setNewTargetKg(e.target.value)}
+                        placeholder="Meta en kg"
+                        className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+                      />
+                      <input
+                        type="date"
+                        value={newDeadline}
+                        onChange={(e) => setNewDeadline(e.target.value)}
+                        className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <label className="flex-1 text-xs text-muted">
+                        Desde
+                        <input
+                          type="date"
+                          value={newWindowStart}
+                          onChange={(e) => setNewWindowStart(e.target.value)}
+                          className="mt-1 w-full border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+                        />
+                      </label>
+                      <label className="flex-1 text-xs text-muted">
+                        Hasta
+                        <input
+                          type="date"
+                          value={newWindowEnd}
+                          onChange={(e) => setNewWindowEnd(e.target.value)}
+                          className="mt-1 w-full border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+                        />
+                      </label>
+                      <label className="text-xs text-muted">
+                        Meta en días
+                        <input
+                          type="number"
+                          value={newTargetDays}
+                          onChange={(e) => setNewTargetDays(e.target.value)}
+                          className="mt-1 w-24 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  <div>
+                    <button
+                      onClick={addObjective}
+                      disabled={savingGoal}
+                      className="bg-maroon px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250 disabled:opacity-50"
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                  <p className="font-mono text-[10px] text-muted">
+                    {newMetric === "rank"
+                      ? "El progreso se calcula solo con tu PR real registrado en Entrenamiento."
+                      : "Cuenta un día apenas cualquier integrante del grupo confirme \"entrené hoy\" en Rutinas."}
+                  </p>
+                </div>
+              </Card>
+            )}
+
+            {goalsLoading ? (
+              <p className="text-sm text-muted">Cargando...</p>
+            ) : trainingGoals.length === 0 ? (
+              <Card className="flex flex-col items-center gap-2 py-12 text-center">
+                <p className="font-display text-2xl tracking-wide text-maroon">Sin objetivos cargados</p>
+                <p className="max-w-sm text-sm text-muted">Agregá el primero con "+ Nuevo objetivo".</p>
+              </Card>
+            ) : showGoalGroups ? (
+              <div className="flex flex-col gap-6">
+                <div>
+                  <p className="mb-3 font-mono text-[10px] uppercase tracking-widest2 text-maroon">
+                    Individuales · {individualGoals.length}
+                  </p>
+                  <ObjectiveGrid goals={individualGoals} onDelete={deleteObjective} />
+                </div>
+                <div>
+                  <p className="mb-3 font-mono text-[10px] uppercase tracking-widest2 text-teal-dark">
+                    Grupales · {groupGoals.length}
+                  </p>
+                  <ObjectiveGrid goals={groupGoals} onDelete={deleteObjective} />
+                </div>
+              </div>
             ) : (
-              <>
-                <p className="font-mono text-3xl font-semibold text-maroon">
-                  {growth.scorePct >= 0 ? "+" : ""}
-                  {growth.scorePct.toFixed(1)}%
-                </p>
-                <p className="font-mono text-[10px] text-muted">
-                  {growth.windowStart} → {growth.windowEnd} · {growth.exercisesCounted} ejercicio(s)
-                </p>
-              </>
+              <ObjectiveGrid goals={sortedGoals} onDelete={deleteObjective} />
             )}
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              onClick={handleStartWindowToday}
-              disabled={savingWindow}
-              className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10 disabled:opacity-50"
-            >
-              Empezar mi ventana hoy
-            </button>
-            <button
-              onClick={handleResetWindow}
-              disabled={savingWindow}
-              className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10 disabled:opacity-50"
-            >
-              Volver al mes completo
-            </button>
-          </div>
-        </Card>
-      </div>
 
-      {/* Rango por ejercicio — paralelo a Power Level, ratio peso levantado / peso
-          corporal contra 14 ejercicios curados, agrupados por músculo. Cada
-          card responde: dónde estoy, si mejoro, y qué sigue (regla de oro). */}
-      <div className="mb-10">
-        <p className="eyebrow mb-4">Rango por ejercicio</p>
-        {ranksLoading ? (
-          <p className="text-sm text-muted">Cargando...</p>
-        ) : muscleGroups.length === 0 ? (
-          <Card className="text-sm text-muted">No se pudo cargar el catálogo de ejercicios.</Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {muscleGroups.map((muscle) => {
-              const exercises = byMuscle[muscle];
-              const markedCount = exercises.filter((r) => r.prKg).length;
-              const isExpanded = !!expandedMuscles[muscle];
-              return (
-              <Card key={muscle} className="flex flex-col gap-3">
-                <button
-                  onClick={() => toggleMuscle(muscle)}
-                  className="flex items-center justify-between gap-2 text-left"
-                  aria-expanded={isExpanded}
-                >
-                  <span className="eyebrow text-maroon">{muscle}</span>
-                  <span className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] text-muted">{markedCount}/{exercises.length} con marca</span>
-                    <span className="text-muted">{isExpanded ? "▲" : "▼"}</span>
-                  </span>
-                </button>
-                {isExpanded && byMuscle[muscle].map((r) => {
-                  const momentum = momentumFor(r);
-                  const nextTierName = r.tierLevel != null ? TIER_NAMES[r.tierLevel + 1] : null;
-                  return (
-                    <div key={r.slug} className="border-t border-line pt-3 first:border-none first:pt-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold">{r.name}</p>
-                        {r.tierName ? <Tag tone="teal">{r.tierName}</Tag> : <Tag>Sin marca</Tag>}
-                      </div>
-                      {r.prKg ? (
-                        <>
-                          <p className="font-mono text-xs text-muted">
-                            PR {r.prKg}kg · ratio {r.ratio?.toFixed(2)}x tu peso
-                            {r.lastPrDate ? ` · ${r.lastPrDate}` : ""}
-                          </p>
-                          <div className="mt-2">
-                            <ProgressBar progress={r.progressToNext} />
-                          </div>
-                          <p className="mt-1 font-mono text-[10px] text-muted">
-                            {nextTierName
-                              ? `${Math.round(r.progressToNext * 100)}% hacia ${nextTierName}`
-                              : "Rango máximo alcanzado"}
-                          </p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            {momentum && <Tag tone={momentum.tone === "teal" ? "teal" : "maroon"}>{momentum.label}</Tag>}
-                            {r.growthPct != null && (
-                              <span className="font-mono text-[10px] text-muted">
-                                {r.growthPct >= 0 ? "+" : ""}
-                                {r.growthPct.toFixed(1)}% en la ventana
-                              </span>
-                            )}
-                          </div>
-                          {r.groupSize > 1 && (
-                            <p className="mt-1 font-mono text-[10px] text-muted">
-                              Puesto {r.groupPosition} de {r.groupSize} en tu grupo
-                            </p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="font-mono text-xs text-muted">
-                          Cargá una marca en Entrenamiento para verlo acá.
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Build física por grupo muscular (Fase 9 v2, Capa 5) — qué tan
-          parejo está desarrollado el usuario entre grupos, con los 14
-          ejercicios curados como única fuente. */}
-      <div className="mb-10">
-        <p className="eyebrow mb-4">Build física</p>
-        {muscleBuild.length === 0 ? (
-          <Card className="text-sm text-muted">
-            Cargá marcas en al menos un ejercicio del catálogo para ver tu build por grupo muscular.
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="flex flex-col gap-1">
-              <p className="eyebrow text-teal-dark">Grupo más fuerte</p>
-              <p className="font-display text-xl tracking-wide text-maroon">{strongestMuscle.muscle}</p>
-              <p className="font-mono text-[10px] text-muted">
-                {strongestMuscle.covered}/{strongestMuscle.total} ejercicios con marca
-              </p>
-            </Card>
-            <Card className="flex flex-col gap-1">
-              <p className="eyebrow text-maroon">Grupo menos desarrollado</p>
-              <p className="font-display text-xl tracking-wide text-maroon">{weakestMuscle.muscle}</p>
-              <p className="font-mono text-[10px] text-muted">
-                {weakestMuscle.covered}/{weakestMuscle.total} ejercicios con marca
-              </p>
-            </Card>
-            <Card className="flex flex-col gap-1">
-              <p className="eyebrow text-teal-dark">Grupo con más mejora</p>
-              {mostImprovedMuscle ? (
-                <>
-                  <p className="font-display text-xl tracking-wide text-maroon">{mostImprovedMuscle.muscle}</p>
-                  <p className="font-mono text-[10px] text-muted">
-                    {mostImprovedMuscle.avgGrowth >= 0 ? "+" : ""}
-                    {mostImprovedMuscle.avgGrowth.toFixed(1)}% promedio en la ventana
+          {/* Ritmo de mejora — no es cuánto levantás, es cuánto MEJORASTE en la
+              ventana elegida. Ventana de 30 días en base al mes, pero elegible
+              (podés arrancarla desde hoy si estás a mitad de mes). */}
+          <div className="mb-10">
+            <p className="eyebrow mb-4">Ritmo de mejora</p>
+            <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                {growth?.scorePct === null || growth?.scorePct === undefined ? (
+                  <p className="text-sm text-muted">
+                    Todavía no hay suficientes marcas en esta ventana para calcularlo.
                   </p>
-                </>
-              ) : (
-                <p className="font-mono text-xs text-muted">Datos insuficientes en esta ventana.</p>
-              )}
+                ) : (
+                  <>
+                    <p className="font-mono text-3xl font-semibold text-maroon">
+                      {growth.scorePct >= 0 ? "+" : ""}
+                      {growth.scorePct.toFixed(1)}%
+                    </p>
+                    <p className="font-mono text-[10px] text-muted">
+                      {growth.windowStart} → {growth.windowEnd} · {growth.exercisesCounted} ejercicio(s)
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  onClick={handleStartWindowToday}
+                  disabled={savingWindow}
+                  className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10 disabled:opacity-50"
+                >
+                  Empezar mi ventana hoy
+                </button>
+                <button
+                  onClick={handleResetWindow}
+                  disabled={savingWindow}
+                  className="border border-maroon/25 px-3 py-2 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10 disabled:opacity-50"
+                >
+                  Volver al mes completo
+                </button>
+              </div>
             </Card>
           </div>
-        )}
-      </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
-        {/* Columna izquierda: gráfico mensual + pendientes del Tracker */}
-        <div>
+          {/* Pulso del mes — gráfico + pendientes del Tracker */}
           <Card className="mb-6">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
               <div>
@@ -709,7 +641,6 @@ export default function Stats() {
             )}
           </Card>
 
-          {/* Pendientes del Tracker, al costado del gráfico */}
           <div className="grid gap-4 sm:grid-cols-2">
             <Card>
               <p className="eyebrow mb-3 text-maroon">Hábitos sin marcar hoy</p>
@@ -741,96 +672,148 @@ export default function Stats() {
               )}
             </Card>
           </div>
-        </div>
+        </>
+      )}
 
-        {/* Vegeta — estado general, un poco esquinado a la derecha */}
-        <div className="xl:mt-10">
-          <p className="eyebrow mb-4">Vegeta — estado general</p>
-          <Card className="sticky top-24 flex flex-col gap-5 py-8">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <CharacterArt src={current.img} alt={current.name} width={160} height={260} />
-              <div>
-                <p className="eyebrow mb-1">Power Level {powerLevel.toLocaleString("es-AR")}</p>
-                <h3 className="font-display text-2xl tracking-wide text-maroon">{current.name}</h3>
-                <Tag tone="teal">{current.tag}</Tag>
+      {tab === "fuerza" && (
+        <>
+          {/* Rango por ejercicio — paralelo a Power Level, ratio peso levantado / peso
+              corporal contra 14 ejercicios curados, agrupados por músculo. Cada
+              card responde: dónde estoy, si mejoro, y qué sigue (regla de oro). */}
+          <div className="mb-10">
+            <p className="eyebrow mb-4">Rango por ejercicio</p>
+            {ranksLoading ? (
+              <p className="text-sm text-muted">Cargando...</p>
+            ) : muscleGroups.length === 0 ? (
+              <Card className="text-sm text-muted">No se pudo cargar el catálogo de ejercicios.</Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {muscleGroups.map((muscle) => {
+                  const exercisesInMuscle = byMuscle[muscle];
+                  const markedCount = exercisesInMuscle.filter((r) => r.prKg).length;
+                  const isExpanded = !!expandedMuscles[muscle];
+                  return (
+                  <Card key={muscle} className="flex flex-col gap-3">
+                    <button
+                      onClick={() => toggleMuscle(muscle)}
+                      className="flex items-center justify-between gap-2 text-left"
+                      aria-expanded={isExpanded}
+                    >
+                      <span className="eyebrow text-maroon">{muscle}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] text-muted">{markedCount}/{exercisesInMuscle.length} con marca</span>
+                        <span className="text-muted">{isExpanded ? "▲" : "▼"}</span>
+                      </span>
+                    </button>
+                    {isExpanded && byMuscle[muscle].map((r) => {
+                      const momentum = momentumFor(r);
+                      const nextTierName = r.tierLevel != null ? TIER_NAMES[r.tierLevel + 1] : null;
+                      return (
+                        <div key={r.slug} className="border-t border-line pt-3 first:border-none first:pt-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold">{r.name}</p>
+                            {r.tierName ? <Tag tone="teal">{r.tierName}</Tag> : <Tag>Sin marca</Tag>}
+                          </div>
+                          {r.prKg ? (
+                            <>
+                              <p className="font-mono text-xs text-muted">
+                                PR {r.prKg}kg · ratio {r.ratio?.toFixed(2)}x tu peso
+                                {r.lastPrDate ? ` · ${r.lastPrDate}` : ""}
+                              </p>
+                              <div className="mt-2">
+                                <ProgressBar progress={r.progressToNext} />
+                              </div>
+                              <p className="mt-1 font-mono text-[10px] text-muted">
+                                {nextTierName
+                                  ? `${Math.round(r.progressToNext * 100)}% hacia ${nextTierName}`
+                                  : "Rango máximo alcanzado"}
+                              </p>
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                {momentum && <Tag tone={momentum.tone === "teal" ? "teal" : "maroon"}>{momentum.label}</Tag>}
+                                {r.growthPct != null && (
+                                  <span className="font-mono text-[10px] text-muted">
+                                    {r.growthPct >= 0 ? "+" : ""}
+                                    {r.growthPct.toFixed(1)}% en la ventana
+                                  </span>
+                                )}
+                              </div>
+                              {r.groupSize > 1 && (
+                                <p className="mt-1 font-mono text-[10px] text-muted">
+                                  Puesto {r.groupPosition} de {r.groupSize} en tu grupo
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="font-mono text-xs text-muted">
+                              Cargá una marca en Entrenamiento para verlo acá.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </Card>
+                  );
+                })}
               </div>
-            </div>
+            )}
+          </div>
 
-            <div>
-              <p className="mb-1 font-mono text-[10px] text-muted">
-                {next
-                  ? `Próxima: ${next.name} · faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts`
-                  : "Nivel máximo alcanzado"}
-              </p>
-              <ProgressBar progress={progress} tone="teal" />
-            </div>
+          {/* Build física por grupo muscular (Fase 9 v2, Capa 5) — qué tan
+              parejo está desarrollado el usuario entre grupos, con los 14
+              ejercicios curados como única fuente. */}
+          <div className="mb-10">
+            <p className="eyebrow mb-4">Build física</p>
+            {muscleBuild.length === 0 ? (
+              <Card className="text-sm text-muted">
+                Cargá marcas en al menos un ejercicio del catálogo para ver tu build por grupo muscular.
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="flex flex-col gap-1">
+                  <p className="eyebrow text-teal-dark">Grupo más fuerte</p>
+                  <p className="font-display text-xl tracking-wide text-maroon">{strongestMuscle.muscle}</p>
+                  <p className="font-mono text-[10px] text-muted">
+                    {strongestMuscle.covered}/{strongestMuscle.total} ejercicios con marca
+                  </p>
+                </Card>
+                <Card className="flex flex-col gap-1">
+                  <p className="eyebrow text-maroon">Grupo menos desarrollado</p>
+                  <p className="font-display text-xl tracking-wide text-maroon">{weakestMuscle.muscle}</p>
+                  <p className="font-mono text-[10px] text-muted">
+                    {weakestMuscle.covered}/{weakestMuscle.total} ejercicios con marca
+                  </p>
+                </Card>
+                <Card className="flex flex-col gap-1">
+                  <p className="eyebrow text-teal-dark">Grupo con más mejora</p>
+                  {mostImprovedMuscle ? (
+                    <>
+                      <p className="font-display text-xl tracking-wide text-maroon">{mostImprovedMuscle.muscle}</p>
+                      <p className="font-mono text-[10px] text-muted">
+                        {mostImprovedMuscle.avgGrowth >= 0 ? "+" : ""}
+                        {mostImprovedMuscle.avgGrowth.toFixed(1)}% promedio en la ventana
+                      </p>
+                    </>
+                  ) : (
+                    <p className="font-mono text-xs text-muted">Datos insuficientes en esta ventana.</p>
+                  )}
+                </Card>
+              </div>
+            )}
+          </div>
 
-            <p className="text-center font-mono text-[10px] text-muted">
-              {deltaPts >= 0 ? "Subiste" : "Bajaste"} {Math.abs(deltaPts)} pts esta semana
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 border-t border-maroon/10 pt-4 text-center">
-              <div>
-                <p className="font-mono text-base font-semibold text-maroon">{gymPoints.toLocaleString("es-AR")}</p>
-                <p className="eyebrow">Pts Gym</p>
-              </div>
-              <div>
-                <p className="font-mono text-base font-semibold text-maroon">
-                  {alimentacionPoints.toLocaleString("es-AR")}
-                </p>
-                <p className="eyebrow">Pts Comida</p>
-              </div>
-              <div>
-                <p className="font-mono text-base font-semibold text-maroon">
-                  {suplementoPoints.toLocaleString("es-AR")}
-                </p>
-                <p className="eyebrow">Pts Suplem.</p>
-              </div>
-              <div>
-                <p className="font-mono text-base font-semibold text-maroon">
-                  {trackerPoints.toLocaleString("es-AR")}
-                </p>
-                <p className="eyebrow">Pts Tracker</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 border-t border-maroon/10 pt-4 text-center">
-              <div>
-                <p className="font-mono text-base font-semibold text-maroon">{Math.round(monthly.daysComponent * 100)}%</p>
-                <p className="eyebrow">Hábitos</p>
-              </div>
-              <div>
-                <p className="font-mono text-base font-semibold text-maroon">
-                  {Math.round(monthly.objectivesComponent * 100)}%
-                </p>
-                <p className="eyebrow">Objetivos</p>
-              </div>
-              <div>
-                <p className="font-mono text-base font-semibold text-maroon">{Math.round(trainingScore * 100)}%</p>
-                <p className="eyebrow">Entrenamiento</p>
-              </div>
-              <div>
-                <p className="font-mono text-base font-semibold text-maroon">{Math.round(nutritionScore * 100)}%</p>
-                <p className="eyebrow">Nutrición</p>
-              </div>
-              <div className="col-span-2">
-                <p className="font-mono text-base font-semibold text-maroon">
-                  {Math.round(supplementationScore * 100)}%
-                </p>
-                <p className="eyebrow">Suplementos</p>
-              </div>
-            </div>
-
-            <div className="border-t border-maroon/10 pt-4">
-              <p className="eyebrow mb-2 text-maroon">5 mejores ejercicios</p>
+          {/* Mejores y peores ejercicios — antes vivían adentro de la card de
+              Vegeta; acá tienen más sentido, junto al resto del detalle de fuerza. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Card>
+              <p className="eyebrow mb-3 text-teal-dark">5 mejores ejercicios</p>
               {bestExercises.length === 0 ? (
                 <p className="text-xs text-muted">Todavía no hay suficientes marcas para rankear.</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
                   {bestExercises.map((ex) => (
-                    <li key={ex.id} className="flex items-center justify-between text-xs">
+                    <li key={ex.id} className="flex items-center justify-between text-sm">
                       <span className="truncate">{ex.name}</span>
-                      <span className="font-mono text-teal-dark">
+                      <span className="font-mono text-xs text-teal-dark">
                         {ex.growthPct >= 0 ? "+" : ""}
                         {Math.round(ex.growthPct)}%
                       </span>
@@ -838,18 +821,17 @@ export default function Stats() {
                   ))}
                 </ul>
               )}
-            </div>
-
-            <div className="border-t border-maroon/10 pt-4">
-              <p className="eyebrow mb-2 text-maroon">3 peores ejercicios</p>
+            </Card>
+            <Card>
+              <p className="eyebrow mb-3 text-maroon">3 peores ejercicios</p>
               {worstExercises.length === 0 ? (
                 <p className="text-xs text-muted">Todavía no hay suficientes marcas para rankear.</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
                   {worstExercises.map((ex) => (
-                    <li key={ex.id} className="flex items-center justify-between text-xs">
+                    <li key={ex.id} className="flex items-center justify-between text-sm">
                       <span className="truncate">{ex.name}</span>
-                      <span className="font-mono text-maroon">
+                      <span className="font-mono text-xs text-maroon">
                         {ex.growthPct >= 0 ? "+" : ""}
                         {Math.round(ex.growthPct)}%
                       </span>
@@ -857,10 +839,60 @@ export default function Stats() {
                   ))}
                 </ul>
               )}
-            </div>
-          </Card>
-        </div>
-      </div>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {tab === "fisico" && (
+        <>
+          {/* Físico — peso y altura, antes no vivían en ningún lado de
+              Estadísticas (estaban de paso en el Dashboard). Datos reales de
+              ProfileContext, editables desde Personalización. */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card className="flex flex-col gap-1">
+              <p className="eyebrow text-maroon">Peso actual</p>
+              <p className="font-mono text-2xl font-semibold text-ink">
+                {latestWeightKg ?? "—"}
+                {latestWeightKg ? " kg" : ""}
+              </p>
+            </Card>
+            <Card className="flex flex-col gap-1">
+              <p className="eyebrow text-maroon">Altura</p>
+              <p className="font-mono text-2xl font-semibold text-ink">
+                {heightCm ?? "—"}
+                {heightCm ? " cm" : ""}
+              </p>
+            </Card>
+            <Card className="flex flex-col gap-1">
+              <p className="eyebrow text-maroon">Evolución de peso</p>
+              <p className="font-mono text-2xl font-semibold text-ink">
+                {weightGrowthKg === null ? "—" : weightGrowthKg > 0 ? `+${weightGrowthKg}` : weightGrowthKg}
+                {weightGrowthKg === null ? "" : " kg"}
+              </p>
+            </Card>
+          </div>
+
+          {weightLog.length === 0 ? (
+            <Card className="mt-6 flex flex-col items-center gap-2 py-12 text-center">
+              <p className="font-display text-2xl tracking-wide text-maroon">Sin registros de peso todavía</p>
+              <p className="max-w-sm text-sm text-muted">Cargalo desde Personalización para ver tu evolución acá.</p>
+            </Card>
+          ) : (
+            <Card className="mt-6">
+              <p className="eyebrow mb-3 text-maroon">Historial de peso</p>
+              <ul className="flex flex-col gap-1.5">
+                {[...weightLog].reverse().slice(0, 10).map((w, i) => (
+                  <li key={i} className="flex items-center justify-between border-t border-line pt-1.5 text-sm first:border-none first:pt-0">
+                    <span className="font-mono text-xs text-muted">{w.date}</span>
+                    <span className="font-mono">{w.weightKg} kg</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </>
+      )}
     </div>
   );
 }

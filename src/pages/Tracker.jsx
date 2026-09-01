@@ -121,11 +121,7 @@ export default function Tracker() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Tracker · Personal"
-        title="Tracker de Hábitos"
-        description="Marcá tus días, entrená seguido y mirá cómo evoluciona Vegeta con tu progreso. Es individual, no se comparte con nadie."
-      />
+      <PageHeader eyebrow="Tracker · Personal" title="Tracker de Hábitos" description="Marcá tus días. Es individual, no se comparte." />
 
       {/* Evolución de Vegeta — combina hábitos+objetivos (Tracker) y marcas (Entrenamiento) */}
       <Card className="mb-8 flex flex-col gap-8 py-10 sm:flex-row sm:items-center sm:justify-between">
@@ -278,133 +274,126 @@ export default function Tracker() {
               </p>
             </Card>
           ) : (
-            <Card hud={false} className="overflow-x-auto p-0">
-              <table className="w-full min-w-[560px] border-collapse text-sm">
-                <thead>
-                  <tr>
-                    <th className="border-b-2 border-maroon/20 bg-maroon px-4 py-3 text-left font-mono text-[11px] uppercase tracking-widest2 text-paper">
-                      Hábito
-                    </th>
-                    {weekDates.map((d, i) => {
-                      const isToday = isSameDay(d, today);
-                      return (
-                        <th
-                          key={i}
-                          className={`border-b-2 border-maroon/20 px-2 py-3 text-center font-mono text-[11px] uppercase tracking-widest2 text-paper ${
-                            isToday ? "bg-teal-dark" : "bg-teal"
-                          }`}
-                        >
-                          <div>{isToday ? "HOY" : DIAS_CORTOS[i]}</div>
-                          <div className="text-[10px] opacity-80">{d.getDate()}</div>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleHabits.map((h, rowIdx) => (
-                    <tr key={h.id} className={rowIdx % 2 === 0 ? "bg-card" : "bg-cream/50"}>
-                      <td className="border-b border-maroon/10 px-4 py-3">
-                        {editingHabitId === h.id ? (
-                          <div className="flex flex-col gap-2">
-                            <div className="flex gap-2">
-                              <input
-                                value={editingHabitIcon}
-                                onChange={(e) => setEditingHabitIcon(e.target.value)}
-                                className="w-12 border border-maroon/30 bg-transparent px-2 py-1 text-center text-sm outline-none focus:border-maroon"
-                              />
-                              <input
-                                value={editingHabitName}
-                                onChange={(e) => setEditingHabitName(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") saveEditHabit();
-                                  if (e.key === "Escape") cancelEditHabit();
-                                }}
-                                autoFocus
-                                className="flex-1 border border-maroon/30 bg-transparent px-2 py-1 text-sm outline-none focus:border-maroon"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex gap-2">
-                                {["gym", "personal"].map((t) => (
-                                  <button
-                                    key={t}
-                                    onClick={() => setEditingHabitType(t)}
-                                    className={TYPE_BUTTON_CLS(editingHabitType === t)}
-                                  >
-                                    {t}
-                                  </button>
-                                ))}
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={saveEditHabit}
-                                  className="bg-maroon px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250"
-                                >
-                                  Guardar
-                                </button>
-                                <button
-                                  onClick={cancelEditHabit}
-                                  className="border border-maroon/25 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
-                                >
-                                  Cancelar
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between gap-2">
-                            <span>
-                              <span className="mr-2">{h.icon}</span>
-                              {h.name}
-                            </span>
-                            <span className="flex shrink-0 gap-1.5">
-                              <button
-                                onClick={() => startEditHabit(h)}
-                                aria-label="Editar hábito"
-                                className="text-muted hover:text-maroon"
-                                title="Editar"
-                              >
-                                ✎
-                              </button>
-                              <button
-                                onClick={() => handleDeleteHabit(h.id)}
-                                aria-label="Borrar hábito"
-                                className="text-muted hover:text-maroon"
-                                title="Borrar"
-                              >
-                                ✕
-                              </button>
-                            </span>
-                          </div>
-                        )}
-                      </td>
-                      {editingHabitId === h.id
-                        ? weekDates.map((d) => <td key={toISO(d)} className="border-b border-maroon/10 bg-cream/30" />)
-                        : weekDates.map((d) => {
-                            const dateISO = toISO(d);
-                            const checked = !!h.checksByDate[dateISO];
-                            return (
-                              <td key={dateISO} className="border-b border-maroon/10 px-2 py-3 text-center">
-                                <button
-                                  onClick={() => toggleCheck(h.id, dateISO)}
-                                  aria-label={`${h.name} — ${dateISO}`}
-                                  className={`inline-flex h-6 w-6 items-center justify-center border transition-all ${
-                                    checked
-                                      ? "animate-pop border-maroon bg-maroon text-paper"
-                                      : "border-maroon/25 bg-transparent text-transparent hover:border-maroon/50"
-                                  }`}
-                                >
-                                  ✓
-                                </button>
-                              </td>
-                            );
-                          })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
+            // Fase 0 P1: de tabla HTML a lista táctil — cada hábito es su
+            // propia fila con una tira de 7 círculos grandes (mejor target
+            // en el celular que una celda de tabla de 24px), alineada bajo
+            // un único encabezado de días arriba (no repetido por fila).
+            <div className="flex flex-col gap-1.5">
+              <div className="grid grid-cols-[1fr_repeat(7,2.25rem)] items-center gap-1 px-1 pb-1 sm:grid-cols-[1fr_repeat(7,2.5rem)]">
+                <span />
+                {weekDates.map((d, i) => {
+                  const isToday = isSameDay(d, today);
+                  return (
+                    <span
+                      key={i}
+                      className={`text-center font-mono text-[9px] uppercase tracking-widest2 ${
+                        isToday ? "text-teal" : "text-muted"
+                      }`}
+                    >
+                      {isToday ? "HOY" : DIAS_CORTOS[i]}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {visibleHabits.map((h) => (
+                <Card key={h.id} hud={false} className="!p-3">
+                  {editingHabitId === h.id ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <input
+                          value={editingHabitIcon}
+                          onChange={(e) => setEditingHabitIcon(e.target.value)}
+                          className="w-12 border border-maroon/30 bg-transparent px-2 py-1 text-center text-sm outline-none focus:border-maroon"
+                        />
+                        <input
+                          value={editingHabitName}
+                          onChange={(e) => setEditingHabitName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEditHabit();
+                            if (e.key === "Escape") cancelEditHabit();
+                          }}
+                          autoFocus
+                          className="flex-1 border border-maroon/30 bg-transparent px-2 py-1 text-sm outline-none focus:border-maroon"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex gap-2">
+                          {["gym", "personal"].map((t) => (
+                            <button
+                              key={t}
+                              onClick={() => setEditingHabitType(t)}
+                              className={TYPE_BUTTON_CLS(editingHabitType === t)}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={saveEditHabit}
+                            className="bg-maroon px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest2 text-paper hover:opacity-90 hover:shadow-glow transition-all duration-250"
+                          >
+                            Guardar
+                          </button>
+                          <button
+                            onClick={cancelEditHabit}
+                            className="border border-maroon/25 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest2 text-maroon hover:bg-maroon/10"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-[1fr_repeat(7,2.25rem)] items-center gap-1 sm:grid-cols-[1fr_repeat(7,2.5rem)]">
+                      <div className="flex min-w-0 items-center justify-between gap-2 pr-2">
+                        <span className="truncate text-sm">
+                          <span className="mr-1.5">{h.icon}</span>
+                          {h.name}
+                        </span>
+                        <span className="flex shrink-0 gap-1.5">
+                          <button
+                            onClick={() => startEditHabit(h)}
+                            aria-label="Editar hábito"
+                            className="text-muted hover:text-maroon"
+                            title="Editar"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            onClick={() => handleDeleteHabit(h.id)}
+                            aria-label="Borrar hábito"
+                            className="text-muted hover:text-maroon"
+                            title="Borrar"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      </div>
+                      {weekDates.map((d) => {
+                        const dateISO = toISO(d);
+                        const checked = !!h.checksByDate[dateISO];
+                        return (
+                          <button
+                            key={dateISO}
+                            onClick={() => toggleCheck(h.id, dateISO)}
+                            aria-label={`${h.name} — ${dateISO}`}
+                            className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full border text-xs transition-all ${
+                              checked
+                                ? "animate-pop border-maroon bg-maroon text-paper"
+                                : "border-maroon/25 bg-transparent text-transparent hover:border-maroon/50"
+                            }`}
+                          >
+                            ✓
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
           )}
 
           {/* Alta de hábito nuevo */}
