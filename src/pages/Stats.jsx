@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Trophy, Flame, Dumbbell, Award, UtensilsCrossed } from "lucide-react";
 import { PageHeader, Card, ProgressBar, Tag, CharacterArt } from "../components/ui";
 import { useTracker } from "../context/TrackerContext";
 import { useTraining } from "../context/TrainingContext";
@@ -10,7 +11,7 @@ import { useRank } from "../context/RankContext";
 import { useGroup } from "../context/GroupContext";
 import { useTrainingGoals } from "../context/TrainingGoalContext";
 import { useProfile } from "../context/ProfileContext";
-import { toISO, startOfWeekMonday, monthLabel } from "../utils/date";
+import { toISO, startOfWeekMonday, monthLabel, getWeekDates, currentStreak } from "../utils/date";
 
 const LINE_COLORS = { gym: "#3AAEEC", comida: "#D9A441", suplemento: "#D7263D" };
 
@@ -100,7 +101,7 @@ function exerciseGrowthPct(progressLog, exerciseId) {
 export default function Stats() {
   const { habits, notes, today, monthly, trackerScore } = useTracker();
   const { exercises, progressLog, trainingScore } = useTraining();
-  const { mealSlots, mealLogsByDate, nutritionScore } = useNutrition();
+  const { mealSlots, mealLogsByDate, nutritionScore, caloriesToday, calorieTarget } = useNutrition();
   const { supplements, supplementationScore } = useSupplementation();
   const { powerLevel, gymPoints, suplementoPoints, alimentacionPoints, trackerPoints } = usePoints();
   const { heightCm, latestWeightKg, weightLog } = useProfile();
@@ -284,6 +285,55 @@ export default function Stats() {
   const bestExercises = rankedExercises.filter((e) => e.growthPct !== null).slice(0, 5);
   const worstExercises = [...rankedExercises].reverse().filter((e) => e.growthPct !== null).slice(0, 3);
 
+  // --- Resumen (Fase 0 P1 — pasada visual) ---------------------------------
+  // Todo lo de acá abajo es SOLO presentación: reordena y reformatea datos
+  // que los contexts ya traían (progressLog, exercises, mealSlots/logs,
+  // trainingGoals), no agrega llamadas nuevas a la API ni cambia ningún
+  // cálculo existente (trainingScore, nutritionScore, etc. siguen intactos
+  // más abajo, sin tocar).
+
+  // Objetivo principal — el de mayor progreso entre los cargados, mismo
+  // orden que ya arma `sortedGoals` más abajo, solo que acá elegimos el
+  // primero para destacarlo en un card grande.
+  const primaryGoal = trainingGoals.length ? [...trainingGoals].sort((a, b) => (b.progress ?? 0) - (a.progress ?? 0))[0] : null;
+
+  // Franja de días de la semana actual (lunes a domingo), con el mismo
+  // combinado gym/comida/suplemento que ya calcula `weeklyStats` por
+  // semana — acá desglosado día por día, solo para el mini-gráfico.
+  const weekDates = getWeekDates(today);
+  const currentWeekDaily = weekDates.map((d) => {
+    const iso = toISO(d);
+    const isFuture = d > today;
+    if (isFuture) return { iso, value: 0, isFuture: true };
+    const gym = gymHabit?.checksByDate?.[iso] ? 1 : 0;
+    const dayLogs = mealLogsByDate[iso] || {};
+    const comida = mealSlots.length ? mealSlots.filter((s) => dayLogs[s.id]).length / mealSlots.length : 0;
+    const suplChecked = supplements.filter((s) => s.checksByDate[iso]).length;
+    const suplemento = supplements.length ? suplChecked / supplements.length : 0;
+    return { iso, value: (gym + comida + suplemento) / 3, isFuture: false };
+  });
+  const weekISOs = weekDates.map(toISO);
+
+  // Entrenos esta semana — días distintos con al menos una marca cargada,
+  // no cuenta series sueltas repetidas el mismo día.
+  const entrenosEstaSemana = new Set(progressLog.filter((p) => weekISOs.includes(p.date)).map((p) => p.date)).size;
+
+  // Ejercicios con marca — mismo dato que ya usa Entrenamiento (ex.pr > 0),
+  // acá solo se cuenta.
+  const exercisesWithPR = exercises.filter((e) => e.pr > 0).length;
+
+  // Récords personales — los 3 ejercicios con marca más recientemente
+  // actualizados, no una lista fija de nombres (cada usuario entrena
+  // ejercicios distintos).
+  const recentPRs = exercises
+    .filter((e) => e.pr > 0)
+    .map((e) => {
+      const marks = marksForExercise(progressLog, e.id);
+      return { ...e, lastDate: marks.length ? marks[marks.length - 1].date : null };
+    })
+    .sort((a, b) => (b.lastDate ?? "").localeCompare(a.lastDate ?? ""))
+    .slice(0, 3);
+
   // Objetivos ordenados para que se entiendan de un vistazo cuando hay
   // varios juntos: primero por tipo (individuales aparte de los grupales,
   // que corren con otra lógica y mezclados confunden), y dentro de cada
@@ -322,7 +372,11 @@ export default function Stats() {
 
   return (
     <div>
-      <PageHeader eyebrow="Objetivos y Estadísticas" title="Panel general" />
+      <PageHeader
+        eyebrow="Panel general"
+        title={<span className="text-maroon">Objetivos</span>}
+        description="Conquistá tu mejor versión."
+      />
 
       {/* Tabs — Fase 0 P1: antes todo esto vivía en una sola ruta muy larga,
           con Objetivos + Ritmo + Rango por ejercicio + Build física +
@@ -345,31 +399,162 @@ export default function Stats() {
 
       {tab === "resumen" && (
         <>
-          {/* Vegeta — quién soy, cómo estoy, primero de todo en el resumen */}
-          <Card className="relative mb-10 flex flex-col items-center gap-5 overflow-hidden py-7 text-center sm:flex-row sm:items-center sm:text-left">
-            <CharacterArt src={current.img} alt={current.name} width={140} height={200} />
-            <div className="flex-1">
-              <p className="eyebrow mb-1">Power Level {powerLevel.toLocaleString("es-AR")}</p>
-              <h2 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">{current.name}</h2>
+          {/* Objetivo principal — el de mayor progreso, destacado primero.
+              Trofeo en dorado (recompensa, por sistema semántico de color),
+              no en el lima de acción ni en el rojo de alerta. */}
+          {primaryGoal && (
+            <div className="mb-8">
+              <p className="eyebrow mb-4">Objetivo principal</p>
+              <Card className="relative flex flex-col gap-4 pr-20">
+                <div>
+                  <p className="font-display text-2xl uppercase tracking-wide text-ink sm:text-3xl">{primaryGoal.title}</p>
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-widest2 text-muted">
+                    {primaryGoal.isClosed ? "Finalizado" : primaryGoal.deadline ? `Vence ${primaryGoal.deadline}` : "Sin fecha límite"}
+                  </p>
+                </div>
+                <div>
+                  <p className="eyebrow mb-1">Progreso actual</p>
+                  <ProgressBar progress={primaryGoal.progress} />
+                </div>
+                <div className="hud absolute right-5 top-5 flex h-14 w-14 items-center justify-center rounded-full border border-gold/40 bg-gold/10 shadow-glow-gold">
+                  <Trophy size={24} className="text-gold" strokeWidth={1.75} />
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Power Level + progreso semanal — dos cards compactas, sin el
+              retrato grande de personaje (eso vive en Evolución, más abajo,
+              y en Personaje). */}
+          <div className="mb-8 grid gap-4 sm:grid-cols-2">
+            <Card className="flex flex-col gap-2">
+              <p className="eyebrow">Power Level</p>
+              <p className="font-mono text-3xl font-semibold text-maroon">{powerLevel.toLocaleString("es-AR")}</p>
               <Tag tone="teal">{current.tag}</Tag>
-              <p className="mt-2 font-mono text-[10px] text-muted">
-                {next
-                  ? `Próxima: ${next.name} · faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts`
-                  : "Nivel máximo alcanzado"}
-              </p>
-              <div className="mt-3 max-w-sm">
+              <div className="mt-1">
                 <ProgressBar progress={progress} tone="teal" />
               </div>
-              <p className="mt-2 font-mono text-[10px] text-muted">
-                {deltaPts >= 0 ? "Subiste" : "Bajaste"} {Math.abs(deltaPts)} pts esta semana
+              <p className="font-mono text-[10px] text-muted">
+                {next
+                  ? `Faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts para ${next.name}`
+                  : "Nivel máximo alcanzado"}
               </p>
-            </div>
-          </Card>
+            </Card>
+            <Card className="flex flex-col gap-2">
+              <p className="eyebrow">Progreso semanal</p>
+              <p className={`font-mono text-3xl font-semibold ${deltaPts >= 0 ? "text-teal" : "text-muted"}`}>
+                {deltaPts >= 0 ? "+" : ""}
+                {deltaPts} pts
+              </p>
+              <div className="mt-1 flex h-12 items-end gap-1.5">
+                {currentWeekDaily.map((d, i) => (
+                  <div key={d.iso} className="flex flex-1 flex-col items-center gap-1">
+                    <div className="flex h-9 w-full items-end bg-line/40">
+                      <div
+                        className={`w-full ${d.isFuture ? "bg-transparent" : "bg-teal"}`}
+                        style={{ height: `${Math.round(d.value * 100)}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-[8px] text-muted">{["L", "M", "M", "J", "V", "S", "D"][i]}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
 
-          {/* Objetivos — fila horizontal, se auto-ajusta al agregar o quitar */}
+          {/* Franja rápida — 4 stats de un vistazo, mismos datos reales que
+              ya usan Dashboard/Entrenamiento/Nutrición, no números nuevos. */}
+          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Card className="flex flex-col items-center gap-1 py-4 text-center">
+              <Flame size={18} className="text-danger" />
+              <p className="font-mono text-xl font-semibold text-ink">{currentStreak(gymHabit?.checksByDate ?? {}, today)}</p>
+              <p className="eyebrow">Racha</p>
+            </Card>
+            <Card className="flex flex-col items-center gap-1 py-4 text-center">
+              <Dumbbell size={18} className="text-teal" />
+              <p className="font-mono text-xl font-semibold text-ink">{entrenosEstaSemana}</p>
+              <p className="eyebrow">Entrenos (7d)</p>
+            </Card>
+            <Card className="flex flex-col items-center gap-1 py-4 text-center">
+              <Award size={18} className="text-gold" />
+              <p className="font-mono text-xl font-semibold text-ink">{exercisesWithPR}</p>
+              <p className="eyebrow">Con marca</p>
+            </Card>
+            <Card className="flex flex-col items-center gap-1 py-4 text-center">
+              <UtensilsCrossed size={18} className="text-maroon" />
+              <p className="font-mono text-xl font-semibold text-ink">
+                {caloriesToday}
+                <span className="text-xs text-muted">/{calorieTarget}</span>
+              </p>
+              <p className="eyebrow">Calorías hoy</p>
+            </Card>
+          </div>
+
+          {/* Récords personales — los ejercicios con marca más recientes,
+              no una lista fija de nombres. */}
+          {recentPRs.length > 0 && (
+            <div className="mb-8">
+              <p className="eyebrow mb-4">Récords personales</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {recentPRs.map((ex) => (
+                  <Card key={ex.id} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <p className="eyebrow">{ex.name}</p>
+                      <Tag tone="danger">PR</Tag>
+                    </div>
+                    <p className="font-mono text-2xl font-semibold text-ink">
+                      {ex.pr}
+                      <span className="text-sm text-muted"> {ex.unit}</span>
+                    </p>
+                    {ex.lastDate && <p className="font-mono text-[10px] text-muted">{ex.lastDate}</p>}
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Evolución — cadena visual etapa actual → próxima etapa, con el
+              mismo % de progreso que ya se muestra arriba en Power Level. */}
+          <div className="mb-10">
+            <p className="eyebrow mb-4">Evolución</p>
+            <Card className="flex items-center justify-center gap-4 py-8 sm:gap-8">
+              <div className="flex flex-col items-center gap-2">
+                <CharacterArt src={current.img} alt={current.name} width={100} height={140} />
+                <p className="text-center font-mono text-[10px] font-semibold uppercase tracking-widest2 text-ink">
+                  {current.name}
+                </p>
+                <p className="font-mono text-[9px] uppercase tracking-widest2 text-muted">Nivel actual</p>
+              </div>
+              <div className="flex flex-1 flex-col items-center gap-1 px-2">
+                <div className="relative h-[2px] w-full max-w-[120px] bg-line">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-maroon"
+                    style={{ width: `${Math.round(progress * 100)}%` }}
+                  />
+                </div>
+                <span className="font-mono text-xs font-semibold text-maroon">{Math.round(progress * 100)}%</span>
+              </div>
+              {next ? (
+                <div className="flex flex-col items-center gap-2 opacity-70">
+                  <CharacterArt src={next.img} alt={next.name} width={100} height={140} />
+                  <p className="text-center font-mono text-[10px] font-semibold uppercase tracking-widest2 text-ink">
+                    {next.name}
+                  </p>
+                  <p className="font-mono text-[9px] uppercase tracking-widest2 text-muted">Próximo nivel</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 opacity-70">
+                  <p className="font-display text-lg tracking-wide text-gold">Máximo</p>
+                  <p className="font-mono text-[9px] uppercase tracking-widest2 text-muted">Nivel máximo</p>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Objetivos — lista completa, se auto-ajusta al agregar o quitar */}
           <div className="mb-10">
             <div className="mb-4 flex items-center justify-between">
-              <p className="eyebrow">Objetivos activos</p>
+              <p className="eyebrow">Todos los objetivos</p>
               <button
                 onClick={() => setShowNewObjective((v) => !v)}
                 className="border border-maroon/40 px-4 py-2 font-mono text-xs uppercase tracking-widest2 text-maroon hover:bg-maroon hover:text-paper"

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { PageHeader, Card, Tag, ProgressBar, CharacterArt } from "../components/ui";
+import { Link } from "react-router-dom";
+import { FlaskConical, GlassWater, Zap, Moon, Check } from "lucide-react";
+import { PageHeader, Card, Tag, ProgressBar, CharacterArt, CharacterHero } from "../components/ui";
 import { useSupplementPlan } from "../context/SupplementPlanContext";
 import { useSupplementation } from "../context/SupplementationContext";
 import { useTracker } from "../context/TrackerContext";
@@ -7,8 +9,17 @@ import { useTraining } from "../context/TrainingContext";
 import { useNutrition } from "../context/NutritionContext";
 import { usePoints } from "../context/PointsContext";
 import { useCharacter } from "../context/CharacterContext";
-import { Link } from "react-router-dom";
-import { DIAS_CORTOS, currentStreak, daysInMonth, monthLabel, toISO } from "../utils/date";
+import { DIAS_CORTOS, currentStreak, daysInMonth, monthLabel, toISO, getWeekDates } from "../utils/date";
+
+// Ícono por categoría — catálogo cerrado de 4 keys reales (creatine/protein/
+// caffeine/magnesium), nada inventado. Fallback a FlaskConical si algún día
+// se suma una key nueva del lado del server sin actualizar esto.
+const SUPPLEMENT_ICONS = {
+  creatine: FlaskConical,
+  protein: GlassWater,
+  caffeine: Zap,
+  magnesium: Moon,
+};
 
 // Fase 7 — historial/adherencia del mes en curso por categoría, a partir de
 // los logs reales que ya devuelve /api/supplement-plan/logs (nada nuevo se
@@ -82,7 +93,7 @@ const STATUS_META = {
   disabled: { tone: undefined, label: "Desactivado" },
 };
 
-function RecommendationCard({ rec, enabled, busy, dayMap, today, onTaken, onSkip, onSnooze, onToggleEnabled }) {
+function RecommendationCard({ rec, busy, dayMap, today, onTaken, onSkip, onSnooze }) {
   const meta = STATUS_META[rec.status] ?? { tone: undefined, label: rec.status };
   const snoozeTime = rec.snoozeUntil
     ? new Date(rec.snoozeUntil).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
@@ -90,12 +101,18 @@ function RecommendationCard({ rec, enabled, busy, dayMap, today, onTaken, onSkip
   // Historial/adherencia colapsado por default — son 4 cards en la grilla y
   // el calendario mensual de cada una ocupa bastante; se pide bajo demanda.
   const [showHistory, setShowHistory] = useState(false);
+  const Icon = SUPPLEMENT_ICONS[rec.key] ?? FlaskConical;
 
   return (
     <Card className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold">{rec.label}</p>
-        <Tag tone={meta.tone}>{meta.label}</Tag>
+      <div className="flex items-start gap-3">
+        <div className="hud flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-maroon/25 bg-maroon/10">
+          <Icon size={18} className="text-maroon" strokeWidth={1.75} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">{rec.label}</p>
+          <Tag tone={meta.tone}>{meta.label}</Tag>
+        </div>
       </div>
 
       <p className="text-xs text-muted">
@@ -151,14 +168,6 @@ function RecommendationCard({ rec, enabled, busy, dayMap, today, onTaken, onSkip
         <span>{showHistory ? "▲" : "▼"}</span>
       </button>
       {showHistory && <AdherencePanel dayMap={dayMap} today={today} />}
-
-      <button
-        disabled={busy}
-        onClick={onToggleEnabled}
-        className="text-left font-mono text-[10px] uppercase tracking-widest2 text-muted underline underline-offset-4 hover:text-maroon disabled:opacity-50"
-      >
-        {enabled ? "Desactivar esta categoría" : "Activar esta categoría"}
-      </button>
     </Card>
   );
 }
@@ -189,62 +198,172 @@ export default function Supplementation() {
 
   const prefsByKey = Object.fromEntries(preferences.map((p) => [p.key, p.enabled]));
 
+  // Cumplimiento semanal — semana actual (lunes a domingo), % de categorías
+  // ACTIVAS marcadas "tomado" sobre el total posible de días ya transcurridos.
+  // Pura lectura de logsByKey (ya fetcheado por el plan), sin llamadas nuevas.
+  const enabledKeys = recommendations.filter((r) => prefsByKey[r.key] ?? true).map((r) => r.key);
+  const weekDates = getWeekDates(planToday);
+  let doneCount = 0;
+  let possibleCount = 0;
+  const weekDays = weekDates.map((d) => {
+    const iso = toISO(d);
+    if (d > planToday) return { iso, status: "future" };
+    let takenCount = 0;
+    for (const key of enabledKeys) {
+      possibleCount += 1;
+      if (logsByKey[key]?.[iso] === "taken") {
+        takenCount += 1;
+        doneCount += 1;
+      }
+    }
+    const status = enabledKeys.length === 0 || takenCount === 0 ? "none" : takenCount === enabledKeys.length ? "full" : "partial";
+    return { iso, status };
+  });
+  const weeklyPct = possibleCount ? doneCount / possibleCount : 0;
+  const daysWithAnyTaken = weekDays.filter((d) => d.status === "full" || d.status === "partial").length;
+  const daysElapsedInWeek = weekDays.filter((d) => d.status !== "future").length;
+
   return (
     <div>
       <PageHeader
         eyebrow="Suplementación"
-        title="Plan del día"
-        description="Recomendaciones en base a tu entreno, tu proteína de hoy y tu hora de dormir — no es indicación médica, es un empujón de hábito."
+        title={<span className="text-maroon">Plan de suplementación</span>}
+        description="Nutrí tu cuerpo. Sumá constancia día a día — no es indicación médica, es un empujón de hábito."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_240px]">
-        <div>
-          {loading ? (
-            <p className="text-sm text-muted">Cargando...</p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {recommendations.map((rec) => (
-                <RecommendationCard
-                  key={rec.key}
-                  rec={rec}
-                  enabled={prefsByKey[rec.key] ?? true}
-                  busy={!!acting[rec.key]}
-                  dayMap={logsByKey[rec.key] || {}}
-                  today={planToday}
-                  onTaken={() => markTaken(rec.key)}
-                  onSkip={() => markSkipped(rec.key)}
-                  onSnooze={() => snooze(rec.key, 2)}
-                  onToggleEnabled={() => setPreferenceEnabled(rec.key, !(prefsByKey[rec.key] ?? true))}
-                />
-              ))}
-            </div>
-          )}
+      {/* Cumplimiento semanal — primero de todo, como el resto de las
+          secciones rediseñadas: el número que más importa, arriba. */}
+      <Card className="mb-8 flex flex-col gap-3">
+        <div className="flex items-baseline justify-between">
+          <p className="eyebrow">Cumplimiento semanal</p>
+          <p className="font-mono text-xs font-semibold text-maroon">{Math.round(weeklyPct * 100)}%</p>
         </div>
+        <ProgressBar progress={weeklyPct} />
+        <div className="mt-1 grid grid-cols-7 gap-1.5">
+          {weekDays.map((d, i) => (
+            <div key={d.iso} className="flex flex-col items-center gap-1">
+              <span className="font-mono text-[8px] uppercase text-muted">{DIAS_CORTOS[i]}</span>
+              <span
+                className={`flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px] ${
+                  d.status === "future"
+                    ? "border-line/40 text-muted/30"
+                    : d.status === "full"
+                    ? "border-maroon bg-maroon text-paper"
+                    : d.status === "partial"
+                    ? "border-maroon/50 text-maroon"
+                    : "border-line text-muted"
+                }`}
+              >
+                {d.status === "full" ? <Check size={12} /> : new Date(d.iso).getDate()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
 
-        {/* Vegeta evolucionando — mismo progreso combinado que Tracker/Entrenamiento/Nutrición */}
-        <div>
-          <p className="eyebrow mb-4">Evolución combinada</p>
-          <Card className="sticky top-24 flex flex-col items-center gap-4 py-8">
-            <CharacterArt src={current.img} alt={current.name} width={200} height={340} />
-            <div className="text-center">
-              <p className="eyebrow mb-1">Power Level {powerLevel.toLocaleString("es-AR")}</p>
-              <h3 className="font-display text-2xl tracking-wide text-maroon">{current.name}</h3>
-              <Tag tone="teal">{current.tag}</Tag>
-            </div>
-            <div className="w-full">
-              <p className="mb-1 font-mono text-[10px] text-muted">
-                {next
-                  ? `Próxima: ${next.name} en ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts`
-                  : "Nivel máximo"}
-              </p>
-              <ProgressBar progress={progress} tone="teal" />
-            </div>
-            <p className="text-center font-mono text-[10px] text-muted">
-              Tracker {Math.round(trackerScore * 100)}% · Entrenamiento {Math.round(trainingScore * 100)}% ·
-              Nutrición {Math.round(nutritionScore * 100)}% · Suplementos {Math.round(supplementationScore * 100)}%
-            </p>
-          </Card>
+      {/* Personaje — mismo patrón de hero que Nutrición/Rutinas, Power Level
+          combinado (Tracker + Entrenamiento + Nutrición + Suplementos). */}
+      <CharacterHero
+        eyebrow={`Power Level ${powerLevel.toLocaleString("es-AR")}`}
+        name={current.name}
+        tag={current.tag}
+        tone="maroon"
+        progress={progress}
+        art={<CharacterArt src={current.img} alt={current.name} width={110} height={150} />}
+      >
+        <p className="font-mono text-[10px] text-muted">
+          {next
+            ? `Próxima etapa: ${next.name} · faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts`
+            : "Nivel máximo alcanzado"}
+        </p>
+      </CharacterHero>
+
+      {/* Suplementos de hoy — las 4 categorías reales, con su recomendación
+          contextual (ya entrenaste, falta proteína, cerca de dormir, etc.) */}
+      <div className="mb-8">
+        <p className="eyebrow mb-4">Suplementos de hoy</p>
+        {loading ? (
+          <p className="text-sm text-muted">Cargando...</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {recommendations.map((rec) => (
+              <RecommendationCard
+                key={rec.key}
+                rec={rec}
+                busy={!!acting[rec.key]}
+                dayMap={logsByKey[rec.key] || {}}
+                today={planToday}
+                onTaken={() => markTaken(rec.key)}
+                onSkip={() => markSkipped(rec.key)}
+                onSnooze={() => snooze(rec.key, 2)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Categorías — activar/desactivar cada una, reubicado acá desde
+          adentro de cada card (misma función setPreferenceEnabled, solo
+          que ahora vive en un solo lugar en vez de repetida 4 veces). */}
+      <div className="mb-8">
+        <p className="eyebrow mb-4">Categorías</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {preferences.map((p) => {
+            const Icon = SUPPLEMENT_ICONS[p.key] ?? FlaskConical;
+            return (
+              <button
+                key={p.key}
+                onClick={() => setPreferenceEnabled(p.key, !p.enabled)}
+                disabled={!!acting[p.key]}
+                className={`hud flex flex-col items-center gap-2 border px-3 py-4 text-center transition-all duration-250 disabled:opacity-50 ${
+                  p.enabled ? "border-maroon/40 bg-maroon/5" : "border-line"
+                }`}
+              >
+                <Icon size={20} className={p.enabled ? "text-maroon" : "text-muted"} strokeWidth={1.75} />
+                <span className={`font-mono text-[9px] uppercase tracking-widest2 ${p.enabled ? "text-ink" : "text-muted"}`}>
+                  {p.label}
+                </span>
+                <span className="font-mono text-[8px] text-muted">{p.enabled ? "Activada" : "Desactivada"}</span>
+              </button>
+            );
+          })}
         </div>
+      </div>
+
+      {/* Historial + Evolución — mismos datos que antes vivían en la barra
+          lateral (Fase 8 de esta mecánica), ahora en fila junto con el
+          resumen de constancia semanal. */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="flex flex-col gap-2">
+          <p className="eyebrow">Historial (7 días)</p>
+          <p className="font-mono text-2xl font-semibold text-ink">
+            {daysWithAnyTaken}
+            <span className="text-sm text-muted">/{daysElapsedInWeek || 7}</span>
+          </p>
+          <p className="font-mono text-[10px] text-muted">días con al menos un suplemento tomado</p>
+          <div className="mt-1 flex h-8 items-end gap-1.5">
+            {weekDays.map((d) => (
+              <div key={d.iso} className="flex h-full flex-1 items-end bg-line/40">
+                <div
+                  className={`w-full ${d.status === "future" ? "bg-transparent" : "bg-maroon"}`}
+                  style={{ height: d.status === "full" ? "100%" : d.status === "partial" ? "50%" : "6%" }}
+                />
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="flex flex-col gap-2">
+          <p className="eyebrow">Evolución combinada</p>
+          <p className="font-mono text-2xl font-semibold text-maroon">{Math.round(progress * 100)}%</p>
+          <p className="font-mono text-[10px] text-muted">hacia {next ? next.name : "nivel máximo"}</p>
+          <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[10px] text-muted">
+            <span>Tracker {Math.round(trackerScore * 100)}%</span>
+            <span>Entrenamiento {Math.round(trainingScore * 100)}%</span>
+            <span>Nutrición {Math.round(nutritionScore * 100)}%</span>
+            <span>Suplementos {Math.round(supplementationScore * 100)}%</span>
+          </div>
+        </Card>
       </div>
     </div>
   );
