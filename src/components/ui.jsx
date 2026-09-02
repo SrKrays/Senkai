@@ -51,6 +51,9 @@ export function CharacterArt({ src, alt, size = 224, width, height, focal = "50%
         <img
           src={src}
           alt={alt}
+          width={w}
+          height={h}
+          decoding="async"
           onError={() => setBroken(true)}
           className="h-full w-full"
           style={{ objectFit: fit, objectPosition: focal }}
@@ -141,6 +144,8 @@ export function ProgressBar({ progress, tone = "maroon" }) {
       ? "bg-teal shadow-glow-teal"
       : tone === "danger"
       ? "bg-danger shadow-glow-danger"
+      : tone === "gold"
+      ? "bg-gold shadow-glow-gold"
       : "bg-maroon shadow-glow-sm";
   return (
     <div>

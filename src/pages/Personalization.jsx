@@ -61,7 +61,7 @@ function ProfileCard() {
   }
 
   return (
-    <Card className="mb-6 flex flex-col gap-4">
+    <div className="surface-utility mb-6 flex flex-col gap-4">
       <div>
         <p className="eyebrow mb-1">Perfil</p>
         <p className="text-xs text-muted">
@@ -81,6 +81,7 @@ function ProfileCard() {
                 value={height}
                 onChange={(e) => setDraftHeight(e.target.value)}
                 placeholder="Ej: 178"
+                aria-label="Altura en centímetros"
                 className="w-28 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
               />
             </div>
@@ -90,6 +91,7 @@ function ProfileCard() {
                 type="time"
                 value={bed}
                 onChange={(e) => setDraftBedTime(e.target.value)}
+                aria-label="Hora de dormir"
                 className="w-32 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
               />
             </div>
@@ -100,6 +102,7 @@ function ProfileCard() {
                 value={proteinGoal}
                 onChange={(e) => setDraftProteinTarget(e.target.value)}
                 placeholder="Ej: 160"
+                aria-label="Objetivo de proteína en gramos por día"
                 className="w-32 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
               />
             </div>
@@ -123,6 +126,7 @@ function ProfileCard() {
                 value={draftWeight}
                 onChange={(e) => setDraftWeight(e.target.value)}
                 placeholder={latestWeightKg ? String(latestWeightKg) : "Ej: 78.5"}
+                aria-label="Peso corporal de hoy en kilogramos"
                 className="w-32 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
               />
             </div>
@@ -136,7 +140,7 @@ function ProfileCard() {
           </div>
         </>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -187,6 +191,7 @@ function StageEditor({ stage, onSave, onRestore }) {
           value={draftName}
           onChange={(e) => setDraftName(e.target.value)}
           placeholder="Nombre de la etapa"
+          aria-label={`Nombre de la etapa ${stage.level + 1}`}
           className="border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
         />
         <ImagePrizeUploader value={draftImage} onChange={setDraftImage} aspect={90 / 130} size={48} hint="Imagen o GIF" />
@@ -236,17 +241,18 @@ export default function Personalization() {
       <PageHeader
         eyebrow="Personalización"
         title="Tu personaje"
-        description="Vegeta es la base por defecto — reemplazá el nombre y la imagen/gif de cada una de las 7 etapas por las tuyas. Los puntos donde sube cada etapa son fijos, así el ranking de Grupos sigue siendo comparable."
+        description="Vegeta es la base por defecto — reemplazá nombre e imagen de cada etapa. Los puntos son fijos para que el ranking de Grupos siga siendo comparable."
       />
 
       <ProfileCard />
 
-      <Card className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="surface-utility mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <p className="eyebrow shrink-0">Nombre de tu personaje</p>
         <input
           value={draftTheme}
           onChange={(e) => setDraftTheme(e.target.value)}
           placeholder="Ej: Goku Ultra Instinto"
+          aria-label="Nombre de tu personaje"
           className="flex-1 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
         />
         <button
@@ -256,8 +262,11 @@ export default function Personalization() {
         >
           Guardar nombre
         </button>
-      </Card>
+      </div>
 
+      {/* FEATURE — las 7 etapas del personaje: es el contenido principal de
+          esta pantalla (editor), mantiene chrome de card por ser cada una
+          una unidad editable independiente. */}
       {loading ? (
         <p className="text-sm text-muted">Cargando tu personaje...</p>
       ) : (

@@ -415,6 +415,7 @@ export default function Routines() {
       <PageHeader
         eyebrow="Rutinas"
         title="Biblioteca de rutinas"
+        description="El plan no negocia con las excusas."
         action={
           <button
             onClick={() => setShowNewRoutine((v) => !v)}
@@ -433,9 +434,10 @@ export default function Routines() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Nombre (ej: Día de Empuje)"
+              aria-label="Nombre de la rutina"
               className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
             />
-            <select value={newFocus} onChange={(e) => setNewFocus(e.target.value)} className={SELECT_CLS}>
+            <select value={newFocus} onChange={(e) => setNewFocus(e.target.value)} aria-label="Foco de la rutina" className={SELECT_CLS}>
               {FOCUS_OPTIONS.map((f) => (
                 <option key={f} value={f}>
                   {f}
@@ -540,7 +542,7 @@ export default function Routines() {
           librería que usa shadcn/ui, la sumamos liviana solo para esto. */}
       {/* UTILITY (brief: "calendario, historial y detalles") — deja de ser
           Card propia, es información de apoyo, no un feature. */}
-      <div className="mb-8 border-t border-line pt-5">
+      <div className="surface-utility mb-8">
         <div className="mb-4 flex items-center justify-between">
           <p className="eyebrow text-maroon">Calendario de la semana</p>
           <p className="font-mono text-xs text-muted">Entrenás {weeklyDaysUsed} día(s) por semana</p>
@@ -640,9 +642,10 @@ export default function Routines() {
                       value={editRoutineName}
                       onChange={(e) => setEditRoutineName(e.target.value)}
                       placeholder="Nombre de la rutina"
+                      aria-label="Nombre de la rutina"
                       className="border border-maroon/30 bg-transparent px-3 py-2 text-lg outline-none focus:border-maroon"
                     />
-                    <select value={editRoutineFocus} onChange={(e) => setEditRoutineFocus(e.target.value)} className={SELECT_CLS}>
+                    <select value={editRoutineFocus} onChange={(e) => setEditRoutineFocus(e.target.value)} aria-label="Foco de la rutina" className={SELECT_CLS}>
                       {FOCUS_OPTIONS.map((f) => (
                         <option key={f} value={f}>
                           {f}
@@ -765,6 +768,7 @@ export default function Routines() {
                             value={editExSets}
                             onChange={(e) => setEditExSets(e.target.value)}
                             placeholder="Series"
+                            aria-label="Series"
                             className="w-16 border border-maroon/30 bg-transparent px-2 py-1 text-sm outline-none focus:border-maroon"
                           />
                           <span className="text-muted">×</span>
@@ -773,6 +777,7 @@ export default function Routines() {
                             value={editExRepMin}
                             onChange={(e) => setEditExRepMin(e.target.value)}
                             placeholder="Reps min"
+                            aria-label="Repeticiones mínimas"
                             className="w-20 border border-maroon/30 bg-transparent px-2 py-1 text-sm outline-none focus:border-maroon"
                           />
                           <input
@@ -780,6 +785,7 @@ export default function Routines() {
                             value={editExRepMax}
                             onChange={(e) => setEditExRepMax(e.target.value)}
                             placeholder="Reps max"
+                            aria-label="Repeticiones máximas"
                             className="w-20 border border-maroon/30 bg-transparent px-2 py-1 text-sm outline-none focus:border-maroon"
                           />
                           <button
@@ -901,6 +907,7 @@ export default function Routines() {
                             setNewExSelectedId(null);
                           }}
                           placeholder="Nombre del ejercicio..."
+                          aria-label="Nombre del ejercicio a agregar"
                           className="w-full border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                         />
                         {(ownMatches.length > 0 || newExSuggestions.length > 0) && (
@@ -935,6 +942,7 @@ export default function Routines() {
                         value={newExWeight}
                         onChange={(e) => setNewExWeight(e.target.value)}
                         placeholder="Peso base (kg)"
+                        aria-label="Peso base en kilogramos"
                         className="w-28 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       />
                       <input
@@ -942,6 +950,7 @@ export default function Routines() {
                         value={newExSets}
                         onChange={(e) => setNewExSets(e.target.value)}
                         placeholder="Series"
+                        aria-label="Series"
                         className="w-20 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       />
                       <input
@@ -949,6 +958,7 @@ export default function Routines() {
                         value={newExRepMin}
                         onChange={(e) => setNewExRepMin(e.target.value)}
                         placeholder="Reps min"
+                        aria-label="Repeticiones mínimas"
                         className="w-24 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       />
                       <input
@@ -956,6 +966,7 @@ export default function Routines() {
                         value={newExRepMax}
                         onChange={(e) => setNewExRepMax(e.target.value)}
                         placeholder="Reps max"
+                        aria-label="Repeticiones máximas"
                         className="w-24 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       />
                       <button

@@ -173,7 +173,7 @@ export default function Training() {
 
   return (
     <div>
-      <PageHeader eyebrow="Entrenamiento" title="La disciplina de hoy es la fuerza de mañana." />
+      <PageHeader eyebrow="Entrenamiento" title="La técnica bien ejecutada no se improvisa." />
 
       {/* Hero — Vegeta como marcador temporal hasta tener a Piccolo (ver nota arriba) */}
       <CharacterHero
@@ -260,6 +260,7 @@ export default function Training() {
                   setSelectedSuggestionId(null);
                 }}
                 placeholder="Nombre (ej: Curl bíceps)"
+                aria-label="Nombre del ejercicio"
                 className="w-full border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
               />
               {suggestions.length > 0 && (
@@ -283,12 +284,14 @@ export default function Training() {
               value={newMuscle}
               onChange={(e) => setNewMuscle(e.target.value)}
               placeholder="Grupo muscular"
+              aria-label="Grupo muscular"
               className="w-40 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
             />
             <input
               value={newUnit}
               onChange={(e) => setNewUnit(e.target.value)}
               placeholder="Unidad (kg)"
+              aria-label="Unidad de medida"
               className="w-24 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
             />
             <div className="flex gap-2">
@@ -375,6 +378,7 @@ export default function Training() {
                         value={newWeight}
                         onChange={(e) => setNewWeight(e.target.value)}
                         placeholder="Peso (kg)"
+                        aria-label="Peso en kilogramos"
                         className="w-28 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       />
                       <input
@@ -382,12 +386,14 @@ export default function Training() {
                         value={newReps}
                         onChange={(e) => setNewReps(e.target.value)}
                         placeholder="Reps"
+                        aria-label="Repeticiones"
                         className="w-24 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       />
                       <input
                         type="date"
                         value={newDate}
                         onChange={(e) => setNewDate(e.target.value)}
+                        aria-label="Fecha de la marca"
                         className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       />
                       <label className="flex items-center gap-1.5 text-xs text-muted">

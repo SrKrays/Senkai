@@ -121,7 +121,11 @@ export default function Tracker() {
 
   return (
     <div>
-      <PageHeader eyebrow="Tracker · Personal" title="Tracker de Hábitos" description="Marcá tus días. Es individual, no se comparte." />
+      <PageHeader
+        eyebrow="Tracker · Personal"
+        title="Tracker de Hábitos"
+        description="La constancia gana más que la intensidad. Es individual, no se comparte."
+      />
 
       {/* Hero — mismo patrón que el resto de las secciones (Nutrición,
           Rutinas, Entrenamiento, Suplementación), no ya el card grande a
@@ -143,37 +147,38 @@ export default function Tracker() {
         </p>
       </CharacterHero>
 
-      {/* Los 5 componentes que arman el Power Level — ícono + %, sin
-          etiqueta larga apilada abajo (eso era lo que se pisaba en mobile). */}
-      <div className="mb-8 grid grid-cols-3 gap-3 sm:grid-cols-5">
-        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+      {/* UTILITY — de qué se compone el Power Level. Info de apoyo, no
+          feature: un solo bloque sin chrome por ítem (antes eran 5 cards
+          sueltas, la típica pila "card card card card card"). */}
+      <div className="surface-utility mb-8 grid grid-cols-3 gap-4 sm:grid-cols-5">
+        <div className="flex flex-col items-center gap-1 text-center">
           <CheckSquare size={18} className="text-maroon" />
           <p className="font-mono text-lg font-semibold text-ink">{Math.round(monthly.daysComponent * 100)}%</p>
           <p className="eyebrow">Hábitos</p>
-        </Card>
-        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+        </div>
+        <div className="flex flex-col items-center gap-1 text-center">
           <Target size={18} className="text-gold" />
           <p className="font-mono text-lg font-semibold text-ink">{Math.round(monthly.objectivesComponent * 100)}%</p>
           <p className="eyebrow">Objetivos</p>
-        </Card>
-        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+        </div>
+        <div className="flex flex-col items-center gap-1 text-center">
           <Dumbbell size={18} className="text-teal" />
           <p className="font-mono text-lg font-semibold text-ink">{Math.round(trainingScore * 100)}%</p>
           <p className="eyebrow">Entreno</p>
-        </Card>
-        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+        </div>
+        <div className="flex flex-col items-center gap-1 text-center">
           <UtensilsCrossed size={18} className="text-maroon" />
           <p className="font-mono text-lg font-semibold text-ink">{Math.round(nutritionScore * 100)}%</p>
           <p className="eyebrow">Nutrición</p>
-        </Card>
-        <Card className="flex flex-col items-center gap-1 py-4 text-center">
+        </div>
+        <div className="flex flex-col items-center gap-1 text-center">
           <Pill size={18} className="text-gold" />
           <p className="font-mono text-lg font-semibold text-ink">{Math.round(supplementationScore * 100)}%</p>
           <p className="eyebrow">Suplementos</p>
-        </Card>
+        </div>
       </div>
 
-      {/* Contador mensual — barra grande, 0 a 100% semana a semana + objetivos */}
+      {/* FEATURE — Contador mensual: barra grande, 0 a 100% semana a semana + objetivos */}
       <Card className="mb-8 py-8">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -271,10 +276,13 @@ export default function Tracker() {
               </p>
             </Card>
           ) : (
-            // Fase 0 P1: de tabla HTML a lista táctil — cada hábito es su
+            // FEATURE — de tabla HTML a lista táctil — cada hábito es su
             // propia fila con una tira de 7 círculos grandes (mejor target
             // en el celular que una celda de tabla de 24px), alineada bajo
             // un único encabezado de días arriba (no repetido por fila).
+            // Cierre visual: las filas dejaron de ser N cards sueltas, ahora
+            // viven en un único contenedor con divisores (mismo patrón que
+            // Entrenamiento) — es una lista, no una pila de cajas.
             <div className="flex flex-col gap-1.5">
               <div className="grid grid-cols-[1fr_repeat(7,2.25rem)] items-center gap-1 px-1 pb-1 sm:grid-cols-[1fr_repeat(7,2.5rem)]">
                 <span />
@@ -293,14 +301,16 @@ export default function Tracker() {
                 })}
               </div>
 
+              <div className="hud divide-y divide-line/70 border border-line">
               {visibleHabits.map((h) => (
-                <Card key={h.id} hud={false} className="!p-3">
+                <div key={h.id} className="p-3">
                   {editingHabitId === h.id ? (
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
                         <input
                           value={editingHabitIcon}
                           onChange={(e) => setEditingHabitIcon(e.target.value)}
+                          aria-label="Ícono del hábito"
                           className="w-12 border border-maroon/30 bg-transparent px-2 py-1 text-center text-sm outline-none focus:border-maroon"
                         />
                         <input
@@ -311,6 +321,7 @@ export default function Tracker() {
                             if (e.key === "Escape") cancelEditHabit();
                           }}
                           autoFocus
+                          aria-label="Nombre del hábito"
                           className="flex-1 border border-maroon/30 bg-transparent px-2 py-1 text-sm outline-none focus:border-maroon"
                         />
                       </div>
@@ -388,8 +399,9 @@ export default function Tracker() {
                       })}
                     </div>
                   )}
-                </Card>
+                </div>
               ))}
+              </div>
             </div>
           )}
 
@@ -401,6 +413,7 @@ export default function Tracker() {
                 value={newHabitIcon}
                 onChange={(e) => setNewHabitIcon(e.target.value)}
                 placeholder="🔥"
+                aria-label="Ícono del nuevo hábito"
                 className="w-14 border border-maroon/20 bg-transparent px-2 py-2 text-center text-sm outline-none focus:border-maroon"
               />
               <input
@@ -408,6 +421,7 @@ export default function Tracker() {
                 onChange={(e) => setNewHabitName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAddHabit()}
                 placeholder="Nombre del hábito..."
+                aria-label="Nombre del nuevo hábito"
                 className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
               />
               <div className="flex gap-2">
@@ -447,6 +461,7 @@ export default function Tracker() {
                           if (e.key === "Escape") cancelEdit();
                         }}
                         autoFocus
+                        aria-label="Editar objetivo o aclaración"
                         className="border border-maroon/30 bg-transparent px-2 py-1.5 text-sm outline-none focus:border-maroon"
                       />
                       <div className="flex gap-2">
@@ -501,6 +516,7 @@ export default function Tracker() {
                 onChange={(e) => setNoteInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
                 placeholder="Nuevo objetivo o aclaración..."
+                aria-label="Nuevo objetivo o aclaración"
                 className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
               />
               <button

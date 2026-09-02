@@ -105,6 +105,7 @@ function GroupSwitchPanel({ onDone, warnSwitch }) {
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="Código (ej: SAIYAN01)"
+            aria-label="Código de invitación"
             className="flex-1 border border-line bg-paper px-3 py-2 font-mono text-sm uppercase tracking-widest text-ink outline-none focus:border-maroon"
           />
           <button
@@ -121,6 +122,7 @@ function GroupSwitchPanel({ onDone, warnSwitch }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nombre del grupo (ej: Guerreros Z)"
+            aria-label="Nombre del grupo"
             className="flex-1 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
           />
           <button
@@ -142,11 +144,13 @@ function GroupSwitchPanel({ onDone, warnSwitch }) {
   );
 }
 
+// UTILITY — sin Card propia: usado siempre de a 3 dentro de un único
+// `.surface-utility`, para no volver a la pila de cajas que tenía antes.
 function Gauge({ label, value, progress, suffix = "" }) {
   return (
-    <Card className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       <p className="eyebrow">{label}</p>
-      <p className="font-mono text-3xl font-semibold text-maroon">
+      <p className="font-mono text-2xl font-semibold text-ink">
         <CountUp value={value} />
         {suffix}
       </p>
@@ -164,7 +168,7 @@ function Gauge({ label, value, progress, suffix = "" }) {
           transition={{ duration: 0.9, ease: "easeOut" }}
         />
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -199,6 +203,7 @@ function GroupRankPanel() {
         <select
           value={slug}
           onChange={(e) => handleChange(e.target.value)}
+          aria-label="Elegir ejercicio para comparar"
           className="border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
         >
           <option value="">Elegí un ejercicio...</option>
@@ -363,18 +368,20 @@ export default function Groups() {
 
   return (
     <div>
-      {/* Identidad propia de Grupos: rojo (danger real), no el lima de
-          "maroon" — es la sección de competencia/desafío, se lee distinto
-          a propósito. Sin personaje fijo (a diferencia de Nutrición/
-          Rutinas), así que el acento de color hace ese trabajo acá. */}
+      {/* Fase 0 P1 — auditoría de paleta: Grupos migró del rojo (danger) a
+          la paleta estándar. El rojo queda 100% reservado a PR/peligro/
+          alerta en toda la app, ninguna sección tiene "su propio color". La
+          sensación de rivalidad/competencia ahora la arma la composición
+          (Hero de Gran Premio, ranking, medallero), no un color robado al
+          sistema semántico. */}
       <PageHeader
         eyebrow="Grupos"
-        title={<span className="text-danger">{group.name}</span>}
+        title={<span className="text-maroon">{group.name}</span>}
         description="Compitiendo juntos, un entrenamiento a la vez."
         action={
           <button
             onClick={() => setShowSwitchPanel((v) => !v)}
-            className="border border-danger/40 px-4 py-2 font-mono text-xs uppercase tracking-widest2 text-danger-light transition-all duration-250 hover:bg-danger hover:text-paper hover:shadow-glow-danger"
+            className="border border-maroon/40 px-4 py-2 font-mono text-xs uppercase tracking-widest2 text-maroon transition-all duration-250 hover:bg-maroon hover:text-paper hover:shadow-glow"
           >
             + Nuevo grupo
           </button>
@@ -385,11 +392,46 @@ export default function Groups() {
         <GroupSwitchPanel warnSwitch onDone={() => setShowSwitchPanel(false)} />
       )}
 
-      {/* Ritmo de mejora del grupo — no es quién levanta más, es quién MEJORÓ
-          más rápido en su propia ventana. Va arriba de todo a propósito, para
-          que aparezca sin que haya que ir a buscarlo. */}
+      {/* HERO — Gran Premio: "qué está en juego" es la pregunta #1 al entrar
+          a Grupos, por eso sube a ser el protagonista visual en vez de vivir
+          más abajo como una card más. Mismo lenguaje atmosférico que el
+          CharacterHero del resto de las secciones (scanlines + superficie
+          elevada), en dorado — es literalmente la recompensa del grupo, el
+          tono que corresponde según el sistema cromático. */}
+      <div className="surface-hero-flat mb-8 flex flex-col items-center gap-5 py-7 text-center sm:flex-row sm:items-center sm:text-left">
+        <div className="scanlines" />
+        <div className="aura-pulse shrink-0">
+          {goal.prizeImageDataUrl ? (
+            <CharacterArt src={goal.prizeImageDataUrl} alt={goal.prize} width={110} height={128} />
+          ) : (
+            <div className="hud flex h-28 w-28 items-center justify-center rounded-full border border-gold/40 bg-gold/10 shadow-glow-gold">
+              <Trophy size={44} className="text-gold" strokeWidth={1.5} />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="eyebrow mb-1 text-gold">Gran Premio · En juego: {goal.prize}</p>
+          <h2 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">
+            {isRankGoal ? goal.targetTierName : `${goal.targetKg}kg en ${goal.exerciseLabel}`}
+          </h2>
+          <div className="mt-3 max-w-sm">
+            <ProgressBar progress={prizeProgress} tone="gold" />
+          </div>
+          <p className="mt-1 font-mono text-[10px] text-muted">
+            {prizeAchieved
+              ? "¡Desbloqueada!"
+              : isRankGoal
+              ? `Falta llegar a ${goal.targetTierName} en ${goal.exerciseLabel.toLowerCase()}`
+              : `Faltan ${prizeMissing}kg en ${goal.exerciseLabel.toLowerCase()} — va ganando ${leader.name}`}
+          </p>
+        </div>
+      </div>
+
+      {/* UTILITY — Ritmo de mejora: dato de apoyo, no protagonista. Antes
+          era una Card propia arriba de todo; ahora es un bloque liviano
+          debajo del Hero. */}
       {groupGrowth?.entries?.some((e) => e.scorePct !== null) && (
-        <Card className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="surface-utility mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="eyebrow mb-1 text-teal-dark">Evolution · Ritmo de mejora del grupo</p>
             {(() => {
@@ -410,16 +452,16 @@ export default function Groups() {
               </li>
             ))}
           </ul>
-        </Card>
+        </div>
       )}
 
       <div>
           {/* Ranking — lista limpia (número, avatar, nombre, valor, flecha),
               sin barras de progreso por fila: eso ahora vive únicamente en
-              Gran Premio, que es donde importa "cuánto falta". Acá lo que
-              importa es el orden. */}
+              el Hero de Gran Premio, que es donde importa "cuánto falta".
+              Acá lo que importa es el orden. */}
           <div className="mb-4 flex items-baseline justify-between">
-            <p className="eyebrow text-danger-light">Ranking</p>
+            <p className="eyebrow text-maroon">Ranking</p>
             <p className="font-mono text-xs text-muted">
               {isRankGoal ? `Meta: ${goal.targetTierName}` : `Meta: ${goal.targetKg}kg en ${goal.exerciseLabel.toLowerCase()}`}
             </p>
@@ -451,12 +493,12 @@ export default function Groups() {
                     src={stage.img}
                     alt={m.name}
                     className={`h-10 w-10 shrink-0 rounded-full border object-cover object-top ${
-                      isLeader ? "border-danger shadow-glow-danger" : "border-line"
+                      isLeader ? "border-gold shadow-glow-gold" : "border-line"
                     }`}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{m.name}</p>
-                    {isLeader && <p className="font-mono text-[9px] uppercase tracking-widest2 text-danger-light">Líder</p>}
+                    {isLeader && <p className="font-mono text-[9px] uppercase tracking-widest2 text-gold">Líder</p>}
                   </div>
                   <span className="shrink-0 font-mono text-sm font-semibold text-gold">
                     {isRankGoal ? (memberRank?.tierName ? memberRank.tierName : "Sin marca") : `${value}kg`}
@@ -466,39 +508,6 @@ export default function Groups() {
               );
             })}
           </Card>
-
-          {/* Gran Premio — el desafío en juego. Trofeo por defecto (no una
-              foto genérica que puede no existir); si el grupo subió una
-              imagen propia para el premio, esa gana. Layout horizontal +
-              acento rojo, acorde a la identidad de Grupos. */}
-          <div className="mb-8">
-            <p className="eyebrow mb-4 text-danger-light">Gran Premio</p>
-            <Card className="flex items-center gap-5 border-danger/25">
-              <div className="min-w-0 flex-1">
-                <p className="eyebrow mb-1">En juego: {goal.prize}</p>
-                <h3 className="font-display text-2xl uppercase tracking-wide text-danger-light sm:text-3xl">
-                  {isRankGoal ? goal.targetTierName : `${goal.targetKg}kg en ${goal.exerciseLabel}`}
-                </h3>
-                <div className="mt-3 max-w-xs">
-                  <ProgressBar progress={prizeProgress} tone="danger" />
-                </div>
-                <p className="mt-1 font-mono text-[10px] text-muted">
-                  {prizeAchieved
-                    ? "¡Desbloqueada!"
-                    : isRankGoal
-                    ? `Falta llegar a ${goal.targetTierName} en ${goal.exerciseLabel.toLowerCase()}`
-                    : `Faltan ${prizeMissing}kg en ${goal.exerciseLabel.toLowerCase()}`}
-                </p>
-              </div>
-              {goal.prizeImageDataUrl ? (
-                <CharacterArt src={goal.prizeImageDataUrl} alt={goal.prize} width={96} height={112} />
-              ) : (
-                <div className="hud flex h-24 w-24 shrink-0 items-center justify-center rounded-full border border-danger/30 bg-danger/10 shadow-glow-danger">
-                  <Trophy size={40} className="text-danger-light" strokeWidth={1.5} />
-                </div>
-              )}
-            </Card>
-          </div>
 
           {!showGoalForm ? (
             <button
@@ -554,6 +563,7 @@ export default function Groups() {
                       <select
                         value={goalRankSlug}
                         onChange={(e) => setGoalRankSlug(e.target.value)}
+                        aria-label="Ejercicio del reto"
                         className="flex-1 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
                       >
                         <option value="">Elegí un ejercicio...</option>
@@ -566,6 +576,7 @@ export default function Groups() {
                       <select
                         value={goalTierLevel}
                         onChange={(e) => setGoalTierLevel(Number(e.target.value))}
+                        aria-label="Etapa objetivo"
                         className="border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
                       >
                         {vegetaEvolution.map((s) => (
@@ -585,6 +596,7 @@ export default function Groups() {
                       value={goalTarget}
                       onChange={(e) => setGoalTarget(e.target.value)}
                       placeholder="Peso objetivo (kg)"
+                      aria-label="Peso objetivo en kilogramos"
                       className="border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
                     />
                   )}
@@ -592,6 +604,7 @@ export default function Groups() {
                     value={goalPrize}
                     onChange={(e) => setGoalPrize(e.target.value)}
                     placeholder="Premio (ej: Lata de Monster)"
+                    aria-label="Premio del reto"
                     className="flex-1 border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-maroon"
                   />
                   <div className="flex gap-2">
@@ -679,23 +692,22 @@ export default function Groups() {
         </div>
 
         <div className="flex flex-col gap-6">
-          {/* Tus stats personales — no son del grupo, así que van después de
-              todo lo grupal (ranking, premio, escuadrón), no antes. Ya se
-              ven en el Dashboard/Personaje; acá quedan como referencia
-              rápida, no como protagonistas de la pantalla. */}
+          {/* UTILITY — tus stats personales: no son del grupo, así que van
+              después de todo lo grupal. Ya se ven en Dashboard/Personaje;
+              acá quedan como referencia rápida, sin chrome de card. */}
           <div>
             <p className="eyebrow mb-4">Tus stats</p>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="surface-utility grid gap-4 sm:grid-cols-3">
               <Gauge label="Power Level" value={powerLevel} progress={powerProgress} />
               <Gauge label="Racha de entrenos" value={streak} suffix=" días" progress={Math.min(1, streak / 30)} />
               <Gauge label="Entrenamientos (mes)" value={monthlyWorkouts} progress={Math.min(1, monthlyWorkouts / 20)} />
             </div>
           </div>
 
-          {/* Actividad + posición de cada uno */}
+          {/* UTILITY — actividad + posición de cada uno */}
           <div>
             <p className="eyebrow mb-4">Actividad y posición</p>
-            <Card className="flex flex-col gap-3">
+            <div className="surface-utility flex flex-col gap-3">
               {ranked.map((m, i) => {
                 const { current: stage } = getVegetaStage(m.powerLevel, vegetaEvolution);
                 return (
@@ -719,17 +731,17 @@ export default function Groups() {
                   </div>
                 );
               })}
-            </Card>
+            </div>
           </div>
 
           <GroupRankPanel />
 
-          {/* Código de invitación — Fase 0 P1: baja al final. Es la tarea
+          {/* UTILITY — código de invitación: baja al final, tarea
               administrativa de "sumar gente", no lo primero que alguien
-              busca al entrar a Grupos (eso es el ranking y el Gran Premio). */}
+              busca al entrar a Grupos (eso es el Hero y el ranking). */}
           <div>
             <p className="eyebrow mb-4">Código de invitación</p>
-            <Card className="flex items-center justify-between gap-3">
+            <div className="surface-utility flex items-center justify-between gap-3">
               <span className="font-mono text-lg font-semibold tracking-widest text-maroon">{group.inviteCode}</span>
               <button
                 onClick={handleCopyCode}
@@ -738,7 +750,7 @@ export default function Groups() {
                 {codeCopied ? <Check size={13} /> : <Copy size={13} />}
                 {codeCopied ? "Copiado" : "Copiar"}
               </button>
-            </Card>
+            </div>
           </div>
         </div>
     </div>

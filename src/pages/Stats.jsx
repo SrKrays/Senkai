@@ -399,122 +399,129 @@ export default function Stats() {
 
       {tab === "resumen" && (
         <>
-          {/* Objetivo principal — el de mayor progreso, destacado primero.
-              Trofeo en dorado (recompensa, por sistema semántico de color),
-              no en el lima de acción ni en el rojo de alerta. */}
+          {/* HERO — Objetivo principal: el de mayor progreso, es la respuesta
+              a "¿qué es lo más importante ahora?" en esta pantalla. Sube a
+              tratamiento Hero (superficie elevada + scanlines) en vez de ser
+              una card más entre varias. */}
           {primaryGoal && (
-            <div className="mb-8">
-              <p className="eyebrow mb-4">Objetivo principal</p>
-              <Card className="relative flex flex-col gap-4 pr-20">
-                <div>
-                  <p className="font-display text-2xl uppercase tracking-wide text-ink sm:text-3xl">{primaryGoal.title}</p>
-                  <p className="mt-1 font-mono text-[10px] uppercase tracking-widest2 text-muted">
-                    {primaryGoal.isClosed ? "Finalizado" : primaryGoal.deadline ? `Vence ${primaryGoal.deadline}` : "Sin fecha límite"}
-                  </p>
-                </div>
-                <div>
-                  <p className="eyebrow mb-1">Progreso actual</p>
-                  <ProgressBar progress={primaryGoal.progress} />
-                </div>
-                <div className="hud absolute right-5 top-5 flex h-14 w-14 items-center justify-center rounded-full border border-gold/40 bg-gold/10 shadow-glow-gold">
-                  <Trophy size={24} className="text-gold" strokeWidth={1.75} />
-                </div>
-              </Card>
+            <div className="surface-hero-flat relative mb-8 flex flex-col gap-4 py-7 pr-5 sm:pr-24">
+              <div className="scanlines" />
+              <div>
+                <p className="eyebrow mb-1">Objetivo principal</p>
+                <p className="font-display text-2xl uppercase tracking-wide text-ink sm:text-3xl">{primaryGoal.title}</p>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-widest2 text-muted">
+                  {primaryGoal.isClosed ? "Finalizado" : primaryGoal.deadline ? `Vence ${primaryGoal.deadline}` : "Sin fecha límite"}
+                </p>
+              </div>
+              <div className="max-w-sm">
+                <p className="eyebrow mb-1">Progreso actual</p>
+                <ProgressBar progress={primaryGoal.progress} />
+              </div>
+              <div className="hud absolute right-5 top-5 flex h-14 w-14 items-center justify-center rounded-full border border-gold/40 bg-gold/10 shadow-glow-gold">
+                <Trophy size={24} className="text-gold" strokeWidth={1.75} />
+              </div>
             </div>
           )}
 
-          {/* Power Level + progreso semanal — dos cards compactas, sin el
-              retrato grande de personaje (eso vive en Evolución, más abajo,
-              y en Personaje). */}
-          <div className="mb-8 grid gap-4 sm:grid-cols-2">
-            <Card className="flex flex-col gap-2">
-              <p className="eyebrow">Power Level</p>
-              <p className="font-mono text-3xl font-semibold text-maroon">{powerLevel.toLocaleString("es-AR")}</p>
-              <Tag tone="teal">{current.tag}</Tag>
-              <div className="mt-1">
-                <ProgressBar progress={progress} tone="teal" />
+          {/* FEATURE 1 — Power Level + progreso semanal: tu situación actual,
+              antes eran dos cards separadas, ahora un solo bloque con dos
+              columnas. */}
+          <div className="mb-8">
+            <Card className="grid gap-6 sm:grid-cols-2 sm:divide-x sm:divide-line/60">
+              <div className="flex flex-col gap-2">
+                <p className="eyebrow">Power Level</p>
+                <p className="font-mono text-3xl font-semibold text-maroon">{powerLevel.toLocaleString("es-AR")}</p>
+                <Tag tone="teal">{current.tag}</Tag>
+                <div className="mt-1">
+                  <ProgressBar progress={progress} tone="teal" />
+                </div>
+                <p className="font-mono text-[10px] text-muted">
+                  {next
+                    ? `Faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts para ${next.name}`
+                    : "Nivel máximo alcanzado"}
+                </p>
               </div>
-              <p className="font-mono text-[10px] text-muted">
-                {next
-                  ? `Faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts para ${next.name}`
-                  : "Nivel máximo alcanzado"}
-              </p>
-            </Card>
-            <Card className="flex flex-col gap-2">
-              <p className="eyebrow">Progreso semanal</p>
-              <p className={`font-mono text-3xl font-semibold ${deltaPts >= 0 ? "text-teal" : "text-muted"}`}>
-                {deltaPts >= 0 ? "+" : ""}
-                {deltaPts} pts
-              </p>
-              <div className="mt-1 flex h-12 items-end gap-1.5">
-                {currentWeekDaily.map((d, i) => (
-                  <div key={d.iso} className="flex flex-1 flex-col items-center gap-1">
-                    <div className="flex h-9 w-full items-end bg-line/40">
-                      <div
-                        className={`w-full ${d.isFuture ? "bg-transparent" : "bg-teal"}`}
-                        style={{ height: `${Math.round(d.value * 100)}%` }}
-                      />
+              <div className="flex flex-col gap-2 sm:pl-6">
+                <p className="eyebrow">Progreso semanal</p>
+                <p className={`font-mono text-3xl font-semibold ${deltaPts >= 0 ? "text-teal" : "text-muted"}`}>
+                  {deltaPts >= 0 ? "+" : ""}
+                  {deltaPts} pts
+                </p>
+                <div className="mt-1 flex h-12 items-end gap-1.5">
+                  {currentWeekDaily.map((d, i) => (
+                    <div key={d.iso} className="flex flex-1 flex-col items-center gap-1">
+                      <div className="flex h-9 w-full items-end bg-line/40">
+                        <div
+                          className={`w-full ${d.isFuture ? "bg-transparent" : "bg-teal"}`}
+                          style={{ height: `${Math.round(d.value * 100)}%` }}
+                        />
+                      </div>
+                      <span className="font-mono text-[8px] text-muted">{["L", "M", "M", "J", "V", "S", "D"][i]}</span>
                     </div>
-                    <span className="font-mono text-[8px] text-muted">{["L", "M", "M", "J", "V", "S", "D"][i]}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </Card>
           </div>
 
-          {/* Franja rápida — 4 stats de un vistazo, mismos datos reales que
-              ya usan Dashboard/Entrenamiento/Nutrición, no números nuevos. */}
-          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Card className="flex flex-col items-center gap-1 py-4 text-center">
-              <Flame size={18} className="text-danger" />
+          {/* UTILITY — franja rápida: 4 stats de un vistazo, mismos datos
+              reales que ya usan Dashboard/Entrenamiento/Nutrición. Antes
+              eran 4 cards sueltas. */}
+          <div className="surface-utility mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <Flame size={18} className="text-maroon" />
               <p className="font-mono text-xl font-semibold text-ink">{currentStreak(gymHabit?.checksByDate ?? {}, today)}</p>
               <p className="eyebrow">Racha</p>
-            </Card>
-            <Card className="flex flex-col items-center gap-1 py-4 text-center">
+            </div>
+            <div className="flex flex-col items-center gap-1 text-center">
               <Dumbbell size={18} className="text-teal" />
               <p className="font-mono text-xl font-semibold text-ink">{entrenosEstaSemana}</p>
               <p className="eyebrow">Entrenos (7d)</p>
-            </Card>
-            <Card className="flex flex-col items-center gap-1 py-4 text-center">
+            </div>
+            <div className="flex flex-col items-center gap-1 text-center">
               <Award size={18} className="text-gold" />
               <p className="font-mono text-xl font-semibold text-ink">{exercisesWithPR}</p>
               <p className="eyebrow">Con marca</p>
-            </Card>
-            <Card className="flex flex-col items-center gap-1 py-4 text-center">
+            </div>
+            <div className="flex flex-col items-center gap-1 text-center">
               <UtensilsCrossed size={18} className="text-maroon" />
               <p className="font-mono text-xl font-semibold text-ink">
                 {caloriesToday}
                 <span className="text-xs text-muted">/{calorieTarget}</span>
               </p>
               <p className="eyebrow">Calorías hoy</p>
-            </Card>
+            </div>
           </div>
 
-          {/* Récords personales — los ejercicios con marca más recientes,
-              no una lista fija de nombres. */}
+          {/* UTILITY — récords personales: los ejercicios con marca más
+              recientes. Antes 3 cards sueltas, ahora una lista con
+              separadores. */}
           {recentPRs.length > 0 && (
             <div className="mb-8">
               <p className="eyebrow mb-4">Récords personales</p>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="hud divide-y divide-line/70 border border-line">
                 {recentPRs.map((ex) => (
-                  <Card key={ex.id} className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <p className="eyebrow">{ex.name}</p>
+                  <div key={ex.id} className="flex items-center justify-between gap-3 p-4">
+                    <div>
+                      <p className="eyebrow mb-1">{ex.name}</p>
+                      {ex.lastDate && <p className="font-mono text-[10px] text-muted">{ex.lastDate}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-xl font-semibold text-ink">
+                        {ex.pr}
+                        <span className="text-sm text-muted"> {ex.unit}</span>
+                      </p>
                       <Tag tone="danger">PR</Tag>
                     </div>
-                    <p className="font-mono text-2xl font-semibold text-ink">
-                      {ex.pr}
-                      <span className="text-sm text-muted"> {ex.unit}</span>
-                    </p>
-                    {ex.lastDate && <p className="font-mono text-[10px] text-muted">{ex.lastDate}</p>}
-                  </Card>
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Evolución — cadena visual etapa actual → próxima etapa, con el
-              mismo % de progreso que ya se muestra arriba en Power Level. */}
+          {/* FEATURE 2 — Evolución: cadena visual etapa actual → próxima
+              etapa, con el mismo % de progreso que ya se muestra arriba en
+              Power Level. */}
           <div className="mb-10">
             <p className="eyebrow mb-4">Evolución</p>
             <Card className="flex items-center justify-center gap-4 py-8 sm:gap-8">
@@ -591,6 +598,7 @@ export default function Stats() {
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="Título del objetivo"
+                    aria-label="Título del objetivo"
                     className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                   />
 
@@ -599,6 +607,7 @@ export default function Stats() {
                       <select
                         value={newRankSlug}
                         onChange={(e) => setNewRankSlug(e.target.value)}
+                        aria-label="Ejercicio del objetivo"
                         className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       >
                         <option value="">Elegí un ejercicio del catálogo...</option>
@@ -613,12 +622,14 @@ export default function Stats() {
                         value={newTargetKg}
                         onChange={(e) => setNewTargetKg(e.target.value)}
                         placeholder="Meta en kg"
+                        aria-label="Meta en kilogramos"
                         className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       />
                       <input
                         type="date"
                         value={newDeadline}
                         onChange={(e) => setNewDeadline(e.target.value)}
+                        aria-label="Fecha límite del objetivo"
                         className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
                       />
                     </div>
@@ -699,12 +710,12 @@ export default function Stats() {
             )}
           </div>
 
-          {/* Ritmo de mejora — no es cuánto levantás, es cuánto MEJORASTE en la
-              ventana elegida. Ventana de 30 días en base al mes, pero elegible
-              (podés arrancarla desde hoy si estás a mitad de mes). */}
+          {/* UTILITY — Ritmo de mejora: no es cuánto levantás, es cuánto
+              MEJORASTE en la ventana elegida (30 días en base al mes,
+              elegible desde hoy si estás a mitad de mes). */}
           <div className="mb-10">
             <p className="eyebrow mb-4">Ritmo de mejora</p>
-            <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="surface-utility flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 {growth?.scorePct === null || growth?.scorePct === undefined ? (
                   <p className="text-sm text-muted">
@@ -738,11 +749,12 @@ export default function Stats() {
                   Volver al mes completo
                 </button>
               </div>
-            </Card>
+            </div>
           </div>
 
-          {/* Pulso del mes — gráfico + pendientes del Tracker */}
-          <Card className="mb-6">
+          {/* UTILITY — Pulso del mes: gráfico de apoyo, no protagonista de
+              la pantalla (ya tenemos Hero + 2 features arriba). */}
+          <div className="surface-utility mb-6">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
               <div>
                 <p className="eyebrow mb-1 text-maroon">Pulso del mes</p>
@@ -824,10 +836,11 @@ export default function Stats() {
                 </div>
               </>
             )}
-          </Card>
+          </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card>
+          {/* UTILITY — pendientes del Tracker, referencia rápida sin chrome de card. */}
+          <div className="surface-utility grid gap-6 sm:grid-cols-2">
+            <div>
               <p className="eyebrow mb-3 text-maroon">Hábitos sin marcar hoy</p>
               {pendingHabits.length === 0 ? (
                 <p className="text-sm text-muted">Marcaste todo hoy. Bien ahí.</p>
@@ -841,8 +854,8 @@ export default function Stats() {
                   ))}
                 </ul>
               )}
-            </Card>
-            <Card>
+            </div>
+            <div>
               <p className="eyebrow mb-3 text-maroon">Objetivos del Tracker sin cumplir</p>
               {pendingNotes.length === 0 ? (
                 <p className="text-sm text-muted">No hay objetivos pendientes en el Tracker.</p>
@@ -855,7 +868,7 @@ export default function Stats() {
                   ))}
                 </ul>
               )}
-            </Card>
+            </div>
           </div>
         </>
       )}
@@ -943,32 +956,32 @@ export default function Stats() {
             )}
           </div>
 
-          {/* Build física por grupo muscular (Fase 9 v2, Capa 5) — qué tan
-              parejo está desarrollado el usuario entre grupos, con los 14
-              ejercicios curados como única fuente. */}
+          {/* UTILITY — Build física por grupo muscular (Fase 9 v2, Capa 5):
+              qué tan parejo está desarrollado el usuario entre grupos.
+              Antes 3 cards sueltas, ahora un solo bloque de 3 columnas. */}
           <div className="mb-10">
             <p className="eyebrow mb-4">Build física</p>
             {muscleBuild.length === 0 ? (
-              <Card className="text-sm text-muted">
+              <p className="text-sm text-muted">
                 Cargá marcas en al menos un ejercicio del catálogo para ver tu build por grupo muscular.
-              </Card>
+              </p>
             ) : (
-              <div className="grid gap-4 md:grid-cols-3">
-                <Card className="flex flex-col gap-1">
+              <div className="surface-utility grid gap-6 md:grid-cols-3">
+                <div className="flex flex-col gap-1">
                   <p className="eyebrow text-teal-dark">Grupo más fuerte</p>
                   <p className="font-display text-xl tracking-wide text-maroon">{strongestMuscle.muscle}</p>
                   <p className="font-mono text-[10px] text-muted">
                     {strongestMuscle.covered}/{strongestMuscle.total} ejercicios con marca
                   </p>
-                </Card>
-                <Card className="flex flex-col gap-1">
+                </div>
+                <div className="flex flex-col gap-1">
                   <p className="eyebrow text-maroon">Grupo menos desarrollado</p>
                   <p className="font-display text-xl tracking-wide text-maroon">{weakestMuscle.muscle}</p>
                   <p className="font-mono text-[10px] text-muted">
                     {weakestMuscle.covered}/{weakestMuscle.total} ejercicios con marca
                   </p>
-                </Card>
-                <Card className="flex flex-col gap-1">
+                </div>
+                <div className="flex flex-col gap-1">
                   <p className="eyebrow text-teal-dark">Grupo con más mejora</p>
                   {mostImprovedMuscle ? (
                     <>
@@ -981,15 +994,15 @@ export default function Stats() {
                   ) : (
                     <p className="font-mono text-xs text-muted">Datos insuficientes en esta ventana.</p>
                   )}
-                </Card>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Mejores y peores ejercicios — antes vivían adentro de la card de
-              Vegeta; acá tienen más sentido, junto al resto del detalle de fuerza. */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card>
+          {/* UTILITY — mejores y peores ejercicios: antes 2 cards separadas,
+              ahora un solo bloque con 2 columnas. */}
+          <div className="surface-utility grid gap-6 sm:grid-cols-2">
+            <div>
               <p className="eyebrow mb-3 text-teal-dark">5 mejores ejercicios</p>
               {bestExercises.length === 0 ? (
                 <p className="text-xs text-muted">Todavía no hay suficientes marcas para rankear.</p>
@@ -1006,8 +1019,8 @@ export default function Stats() {
                   ))}
                 </ul>
               )}
-            </Card>
-            <Card>
+            </div>
+            <div>
               <p className="eyebrow mb-3 text-maroon">3 peores ejercicios</p>
               {worstExercises.length === 0 ? (
                 <p className="text-xs text-muted">Todavía no hay suficientes marcas para rankear.</p>
@@ -1024,47 +1037,48 @@ export default function Stats() {
                   ))}
                 </ul>
               )}
-            </Card>
+            </div>
           </div>
         </>
       )}
 
       {tab === "fisico" && (
         <>
-          {/* Físico — peso y altura, antes no vivían en ningún lado de
+          {/* FEATURE — peso y altura, antes no vivían en ningún lado de
               Estadísticas (estaban de paso en el Dashboard). Datos reales de
-              ProfileContext, editables desde Personalización. */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card className="flex flex-col gap-1">
+              ProfileContext, editables desde Personalización. Único bloque
+              con chrome de card en esta pestaña — hace de ancla visual. */}
+          <Card className="grid gap-6 sm:grid-cols-3 sm:divide-x sm:divide-line/60">
+            <div className="flex flex-col gap-1">
               <p className="eyebrow text-maroon">Peso actual</p>
               <p className="font-mono text-2xl font-semibold text-ink">
                 {latestWeightKg ?? "—"}
                 {latestWeightKg ? " kg" : ""}
               </p>
-            </Card>
-            <Card className="flex flex-col gap-1">
+            </div>
+            <div className="flex flex-col gap-1 sm:pl-6">
               <p className="eyebrow text-maroon">Altura</p>
               <p className="font-mono text-2xl font-semibold text-ink">
                 {heightCm ?? "—"}
                 {heightCm ? " cm" : ""}
               </p>
-            </Card>
-            <Card className="flex flex-col gap-1">
+            </div>
+            <div className="flex flex-col gap-1 sm:pl-6">
               <p className="eyebrow text-maroon">Evolución de peso</p>
               <p className="font-mono text-2xl font-semibold text-ink">
                 {weightGrowthKg === null ? "—" : weightGrowthKg > 0 ? `+${weightGrowthKg}` : weightGrowthKg}
                 {weightGrowthKg === null ? "" : " kg"}
               </p>
-            </Card>
-          </div>
+            </div>
+          </Card>
 
+          {/* UTILITY — historial de peso */}
           {weightLog.length === 0 ? (
-            <Card className="mt-6 flex flex-col items-center gap-2 py-12 text-center">
-              <p className="font-display text-2xl tracking-wide text-maroon">Sin registros de peso todavía</p>
-              <p className="max-w-sm text-sm text-muted">Cargalo desde Personalización para ver tu evolución acá.</p>
-            </Card>
+            <p className="surface-utility mt-6 text-sm text-muted">
+              Sin registros de peso todavía. Cargalo desde Personalización para ver tu evolución acá.
+            </p>
           ) : (
-            <Card className="mt-6">
+            <div className="surface-utility mt-6">
               <p className="eyebrow mb-3 text-maroon">Historial de peso</p>
               <ul className="flex flex-col gap-1.5">
                 {[...weightLog].reverse().slice(0, 10).map((w, i) => (
@@ -1074,7 +1088,7 @@ export default function Stats() {
                   </li>
                 ))}
               </ul>
-            </Card>
+            </div>
           )}
         </>
       )}

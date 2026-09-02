@@ -105,6 +105,7 @@ function NumberStepper({ label, value, onChange, step, min = 0, placeholder }) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          aria-label={label}
           className="w-full min-w-0 border-x border-maroon/20 bg-transparent px-1 py-3 text-center font-mono text-lg outline-none focus:bg-maroon/5"
         />
         <button

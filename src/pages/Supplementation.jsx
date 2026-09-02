@@ -231,9 +231,27 @@ export default function Supplementation() {
         description="Nutrí tu cuerpo. Sumá constancia día a día — no es indicación médica, es un empujón de hábito."
       />
 
-      {/* Cumplimiento semanal — primero de todo, como el resto de las
-          secciones rediseñadas: el número que más importa, arriba. */}
-      <Card className="mb-8 flex flex-col gap-3">
+      {/* HERO — personaje, mismo patrón que Nutrición/Rutinas, Power Level
+          combinado (Tracker + Entrenamiento + Nutrición + Suplementos).
+          Va primero: es la respuesta a "cómo estoy hoy" antes que el detalle. */}
+      <CharacterHero
+        eyebrow={`Power Level ${powerLevel.toLocaleString("es-AR")}`}
+        name={current.name}
+        tag={current.tag}
+        tone="maroon"
+        progress={progress}
+        art={<CharacterArt src={current.img} alt={current.name} width={110} height={150} />}
+      >
+        <p className="font-mono text-[10px] text-muted">
+          {next
+            ? `Próxima etapa: ${next.name} · faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts`
+            : "Nivel máximo alcanzado"}
+        </p>
+      </CharacterHero>
+
+      {/* UTILITY — cumplimiento semanal: referencia rápida, sin chrome de
+          card (antes era una Card suelta arriba de todo). */}
+      <div className="surface-utility mb-8 flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <p className="eyebrow">Cumplimiento semanal</p>
           <p className="font-mono text-xs font-semibold text-maroon">{Math.round(weeklyPct * 100)}%</p>
@@ -259,27 +277,11 @@ export default function Supplementation() {
             </div>
           ))}
         </div>
-      </Card>
+      </div>
 
-      {/* Personaje — mismo patrón de hero que Nutrición/Rutinas, Power Level
-          combinado (Tracker + Entrenamiento + Nutrición + Suplementos). */}
-      <CharacterHero
-        eyebrow={`Power Level ${powerLevel.toLocaleString("es-AR")}`}
-        name={current.name}
-        tag={current.tag}
-        tone="maroon"
-        progress={progress}
-        art={<CharacterArt src={current.img} alt={current.name} width={110} height={150} />}
-      >
-        <p className="font-mono text-[10px] text-muted">
-          {next
-            ? `Próxima etapa: ${next.name} · faltan ${(next.minScore - powerLevel).toLocaleString("es-AR")} pts`
-            : "Nivel máximo alcanzado"}
-        </p>
-      </CharacterHero>
-
-      {/* Suplementos de hoy — las 4 categorías reales, con su recomendación
-          contextual (ya entrenaste, falta proteína, cerca de dormir, etc.) */}
+      {/* FEATURE — Suplementos de hoy: las 4 categorías reales, con su
+          recomendación contextual (ya entrenaste, falta proteína, cerca de
+          dormir, etc.) — es la acción principal de esta pantalla. */}
       <div className="mb-8">
         <p className="eyebrow mb-4">Suplementos de hoy</p>
         {loading ? (
@@ -302,10 +304,10 @@ export default function Supplementation() {
         )}
       </div>
 
-      {/* Categorías — activar/desactivar cada una, reubicado acá desde
-          adentro de cada card (misma función setPreferenceEnabled, solo
-          que ahora vive en un solo lugar en vez de repetida 4 veces). */}
-      <div className="mb-8">
+      {/* UTILITY — Categorías: activar/desactivar cada una, reubicado acá
+          desde adentro de cada card (misma función setPreferenceEnabled,
+          solo que ahora vive en un solo lugar en vez de repetida 4 veces). */}
+      <div className="surface-utility mb-8">
         <p className="eyebrow mb-4">Categorías</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {preferences.map((p) => {
@@ -330,11 +332,11 @@ export default function Supplementation() {
         </div>
       </div>
 
-      {/* Historial + Evolución — mismos datos que antes vivían en la barra
-          lateral (Fase 8 de esta mecánica), ahora en fila junto con el
-          resumen de constancia semanal. */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="flex flex-col gap-2">
+      {/* UTILITY — Historial + Evolución: mismos datos que antes vivían en
+          la barra lateral (Fase 8 de esta mecánica), ahora fusionados en un
+          solo bloque de dos columnas en vez de 2 cards sueltas. */}
+      <div className="surface-utility grid gap-6 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
           <p className="eyebrow">Historial (7 días)</p>
           <p className="font-mono text-2xl font-semibold text-ink">
             {daysWithAnyTaken}
@@ -351,9 +353,9 @@ export default function Supplementation() {
               </div>
             ))}
           </div>
-        </Card>
+        </div>
 
-        <Card className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:border-l sm:border-line/60 sm:pl-6">
           <p className="eyebrow">Evolución combinada</p>
           <p className="font-mono text-2xl font-semibold text-maroon">{Math.round(progress * 100)}%</p>
           <p className="font-mono text-[10px] text-muted">hacia {next ? next.name : "nivel máximo"}</p>
@@ -363,7 +365,7 @@ export default function Supplementation() {
             <span>Nutrición {Math.round(nutritionScore * 100)}%</span>
             <span>Suplementos {Math.round(supplementationScore * 100)}%</span>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

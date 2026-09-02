@@ -55,6 +55,10 @@ export default function CharacterFlipbook({
           ref={(el) => (imgRefs.current[i] = el)}
           src={src}
           alt={alt}
+          width={width}
+          height={height}
+          decoding="async"
+          fetchPriority={i === 0 ? "high" : "low"}
           className="absolute inset-0 h-full w-full"
           style={{ objectFit: fit, objectPosition: focal, opacity: i === 0 ? 1 : 0 }}
         />

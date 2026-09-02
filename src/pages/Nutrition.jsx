@@ -104,6 +104,7 @@ function MealSlotCard({
               onChange={(e) => onSlotNameDraftChange(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && onSaveSlotName(slot.id)}
               autoFocus
+              aria-label={`Nombre de ${slot.name}`}
               className="flex-1 border border-maroon/30 bg-transparent px-2 py-1 text-sm outline-none focus:border-maroon"
             />
             <button
@@ -180,6 +181,7 @@ function MealSlotCard({
                 setSelectedFood(null);
               }}
               placeholder="¿Qué comiste? (en inglés sugiere mejor, ej: noodles)"
+              aria-label="Qué comiste"
               className="w-full border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
             />
             {suggestions.length > 0 && (
@@ -222,6 +224,7 @@ function MealSlotCard({
               value={draft.calories}
               onChange={(e) => onSetDraft(slot.id, { calories: e.target.value })}
               placeholder="Calorías"
+              aria-label="Calorías"
               className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
             />
             <input
@@ -229,6 +232,7 @@ function MealSlotCard({
               value={draft.proteinGrams}
               onChange={(e) => onSetDraft(slot.id, { proteinGrams: e.target.value })}
               placeholder="Proteína (g)"
+              aria-label="Proteína en gramos"
               className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
             />
           </div>
@@ -236,6 +240,7 @@ function MealSlotCard({
             value={draft.notes}
             onChange={(e) => onSetDraft(slot.id, { notes: e.target.value })}
             placeholder="Notas (opcional)"
+            aria-label="Notas"
             rows={2}
             className="border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
           />
@@ -429,6 +434,7 @@ export default function Nutrition() {
               onChange={(e) => setNewSlotName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddSlot()}
               placeholder="Nombre (ej: Colación nocturna)"
+              aria-label="Nombre de la división de comida"
               className="flex-1 border border-maroon/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-maroon"
             />
             <div className="flex gap-2">
@@ -485,7 +491,7 @@ export default function Nutrition() {
       )}
 
       {/* UTILITY — dato secundario, ya no necesita su propia Card. */}
-      <div className="mt-8 border-t border-line pt-4">
+      <div className="surface-utility mt-8">
         <div className="mb-2 flex items-baseline justify-between">
           <p className="eyebrow text-maroon">Progreso mensual</p>
           <p className="font-mono text-xs text-muted">{Math.round(nutritionScore * 100)}%</p>

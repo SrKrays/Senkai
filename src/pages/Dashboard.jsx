@@ -133,7 +133,7 @@ export default function Dashboard() {
         <p className="eyebrow mb-3">Resumen del día</p>
         <Card className="grid grid-cols-3 divide-x divide-line/60">
           <div className="flex flex-col items-center gap-1 text-center">
-            <Flame size={18} className="text-danger" />
+            <Flame size={18} className="text-maroon" />
             <p className="font-mono text-xl font-semibold text-ink">{streak}</p>
             <p className="eyebrow">Racha</p>
           </div>
@@ -153,7 +153,7 @@ export default function Dashboard() {
       {/* UTILITY — mejores ejercicios + grupo: información real pero
           secundaria frente al hero/features de arriba. Filas simples con
           separador, sin card pesada (sin fondo/borde/sombra propios). */}
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="surface-utility grid gap-8 lg:grid-cols-2">
         <div>
           <p className="eyebrow mb-3">Mejores ejercicios</p>
           {bestExercises.length === 0 ? (

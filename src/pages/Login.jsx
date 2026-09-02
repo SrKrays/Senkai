@@ -90,7 +90,7 @@ export default function Login() {
           </label>
 
           {error && (
-            <p className="border border-maroon/40 bg-maroon/10 px-3 py-2 font-mono text-xs text-maroon-light">
+            <p className="border border-danger/40 bg-danger/10 px-3 py-2 font-mono text-xs text-danger-light">
               {error}
             </p>
           )}

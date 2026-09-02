@@ -43,6 +43,42 @@
   --text-muted: #666666;
 }
 
+/* ── Sistema cromático — significado, no decoración ──────────────────────
+   Fase 0 P1 (cierre + auditoría de paleta). Cada color de acento tiene UN
+   solo significado en toda la app. Si un uso no encaja en esta lista, no
+   es ese color — esta tabla es la fuente de verdad, antes de "queda lindo".
+
+     lima/verde (--red-rgb, clase `maroon`)   → Acción / Ki / progreso activo.
+       Botones primarios, barras de progreso propias, streaks, CTAs.
+     celeste (--blue-rgb, clase `teal`)        → Información / rendimiento.
+       Stats secundarias, datos de referencia, progreso de otros (grupo).
+     dorado (`gold`)                           → Recompensa / logro / hito.
+       PRs, rangos, medallas, "récord", nivel máximo. Nunca decorativo.
+     rojo real (`danger`)                      → Peligro / alerta / fallo.
+       Errores, confirmaciones destructivas, avisos. NUNCA identidad de
+       sección — ni siquiera para "rivalidad" o "competencia": ese matiz se
+       logra con composición (Gran Premio, ranking) usando la paleta
+       estándar, no reasignando el rojo.
+     blanco/ink                                → Jerarquía / contenido
+       principal. Es el color por defecto de todo texto importante — los
+       acentos de arriba se usan para señalar, no para colorear todo.
+
+   ── Escala de superficies — de "fondo + cards + personaje" a un sistema
+   con profundidad real. Tres niveles, ninguno es un componente rígido:
+
+     Nivel 1 — Utility: sin chrome propio. Vive directo sobre el fondo de
+       la página (que ya trae el gradiente radial de acá abajo). Se separa
+       con un simple `.surface-utility` (línea + aire), nunca con su propia
+       card. Es información de apoyo — historial, detalles, listas.
+     Nivel 2 — Feature: usa `.hud` (la Card de siempre) — borde neutro,
+       esquinas HUD, sombra leve. 2-3 por pantalla como máximo.
+     Nivel 3 — Hero: además de `.hud`, suma atmósfera — `.scanlines` +
+       `.aura-pulse` alrededor del personaje. Es la única superficie que
+       "respira" con efectos; si todo tuviera esto, dejaría de sentirse
+       especial. Reservado a CharacterHero (o su equivalente sin personaje,
+       ver `.surface-hero-flat` más abajo).
+   ────────────────────────────────────────────────────────────────────── */
+
 @layer base {
   html {
     @apply scroll-smooth;
@@ -138,6 +174,20 @@
 
   .eyebrow {
     @apply font-mono text-[11px] uppercase tracking-widest2 text-muted;
+  }
+
+  /* Nivel 1 de superficie (ver escala arriba) — reemplaza el patrón repetido
+     a mano de "border-t border-line pt-5" para info secundaria que no
+     necesita (ni debería tener) su propia Card. */
+  .surface-utility {
+    @apply border-t border-line pt-5;
+  }
+
+  /* Hero sin personaje (Login, Personalización) — mismo lenguaje atmosférico
+     que CharacterHero (scanlines + fondo elevado) sin depender de un arte
+     de personaje, para que esas pantallas no se sientan "menos Senkai". */
+  .surface-hero-flat {
+    @apply hud relative overflow-hidden border-line bg-card;
   }
 
   /* Texto neón — para stats "vivos" como Power Level y contadores de subida */
